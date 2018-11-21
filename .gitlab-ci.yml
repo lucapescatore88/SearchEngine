@@ -1,0 +1,10 @@
+stages:
+  - test
+
+before_script:
+  - pip install seaborn
+
+script:
+  - echo 'Test Done'
+
+artifacts:
