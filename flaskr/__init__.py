@@ -1,4 +1,4 @@
-import os
+import os, sys
 import engine
 
 from flask import Flask, url_for, render_template, request
@@ -39,6 +39,9 @@ def create_app(test_config=None):
     def action():
         first = request.args.get('firstname')
         last  = request.args.get('lastname')
-        return first + " " + last    
+        res = engine.runsearch.runSearch(first,last)
+
+        fullname = "{0} {1} {2}".format(first,res['midname'],last) 
+        return render_template('main_res.html',fullname=fullname,**res)
 
     return app

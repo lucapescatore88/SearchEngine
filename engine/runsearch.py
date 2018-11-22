@@ -8,14 +8,14 @@ wikipedia.set_lang("en")
 def runSearch(name,surname,midname="") :
 
     query = '{name} {midname} {surname}'.format(
-                name    = args.name, 
-                midname = args.midname,
-                surname = args.surname )
+                name    = name, 
+                midname = midname,
+                surname = surname )
 
     pages = wikipedia.search(query)
 
     mainpage = pages[0] 
-    if(args.name in mainpage and args.surname in mainpage) :
+    if(name in mainpage and surname in mainpage) :
         page = wikipedia.page(mainpage)
     else :
         return "Something is wrong... no Wiki page found"
@@ -30,10 +30,15 @@ def runSearch(name,surname,midname="") :
     f.close()
     
     ### Remember to ass midname to search options
-    midname, bio = findWikiBiography(soup,args.name,args.surname)
+    midname, bio = findWikiBiography(soup,name,surname)
+    profs = findWikiProfession(soup)
+    if profs is not None :
+        print profs
+        profs = ' '.join(profs)
     out = {
-        'bio'        : bio, 'midname' : midname,
-        'profession' : findWikiProfession(soup),
+        'bio'        : bio, 
+        'midname'    : midname,
+        'profession' : profs,
         'bday'       : findWikiBirthDay(soup),
         'money'      : findWikiNetWorth(soup),
         'nation'     : findWikiNationality(soup) 

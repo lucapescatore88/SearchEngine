@@ -1,4 +1,6 @@
 import re
+from HTMLParser import HTMLParser
+hparse = HTMLParser()
 
 def findWikiProfession(soup) :
 
@@ -13,16 +15,28 @@ def findWikiProfession(soup) :
                 break
 
         if not found : continue
-        print "Found Profession tag!"
+        #print "----------------------------------------"
+        #print "Found Profession tag!"
+        #print tr
+
         for li in tr.findChildren("li") :
             links =  li.findChildren("a")
-            if len(links)==0 : professions.append(li.string)
-            else :
-                professions.append(li.findChildren("a")[0].string)
+            prof = li.string
+            if len(links)>0 : prof = links[0].string
+            professions.append(hparse.unescape(prof))
         
         if len(professions)==0 : 
-            td = tr.findChildren("td")[0]
-            professions.append(td.string)
+            data = tr.findChildren("td")[0].__str__()
+            data = hparse.unescape(data)
+            data = re.sub(r"(?i)<br/>","",data)
+            data = re.sub(r"(?i)<[/]?a.*?>","",data)
+            data = re.sub(r"(?i)<[/]?[ibp]>","",data)
+            data = re.sub(r"(?i)<[/]?tr>","",data)
+            data = re.sub(r"(?i)<[/]?td>","",data)
+            data = re.sub(r"(?i)<br/>","",data)
+            data = re.sub(r"<td class=\"role\">","",data)
+            print data
+            professions.append(data)
         break
     return professions
 
@@ -48,7 +62,14 @@ def findWikiBirthDay(soup) :
 
     for el in soup.findChildren("span",{'class':'bday'}) :
         return el.text
-    return None 
+
+    names, bio = findWikiBiography(soup,name,surname)
+    groups = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)")
+    if len(groups)>0 :
+        print groups
+        return groups[0] 
+
+    return "No date found... sorry"
 
 #from forex_python.converter import CurrencyRates
 #c = CurrencyRates()
@@ -104,13 +125,16 @@ def findWikiBiography(soup,name,surname) :
                 found = True
         if found : break
 
-    if bio is None : return
+    if bio is None : return None, None
     
     print "Midnames = ", names
 
     bio = re.sub(r"(?i)<[/]?[ibp]>","",bio.__str__())   # Remove p,i,b tags
     bio = re.sub(r"(?i)<sup.*?/sup[ ]*>","",bio)        # Remove citations
     bio = re.sub(r"(?i)<[/]?a.*?>","",bio)              # Remove links (but not their text)
+    bio = re.sub(r"(?i)<span.*?/span[ ]*>","",bio)
+    bio = re.sub(r"(?i)<small.*?/small[ ]*>","",bio)
+    bio = hparse.unescape(bio)
     print bio
 
     return names, bio
