@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<title>Hello from Flask</title>
+{% if name %}
+  <h1>Hello {{ name }}!</h1>
+{% else %}
+  <h1>Hello, World!</h1>
+{% endif %}
+<!--a href="/button"><button type="button">Click Me!</button></a-->
+
+<h2>HTML Forms</h2>
+
+<form action="/action">
+  First name:<br>
+  <input type="text" name="firstname" value="Mickey">
+  <br>
+  Last name:<br>
+  <input type="text" name="lastname" value="Mouse">
+  <br><br>
+  <input type="submit" value="Submit">
+</form> 
+
+
+</body>
+</html>
+
