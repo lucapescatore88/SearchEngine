@@ -16,7 +16,8 @@ Or you can access it from the browser too by typing `flask run` to start the ser
 
 If you don't want to bother with all that you can build a Docker environment typing the following from the main folder:
 
-```docker build -t pictet-image .
+```
+docker build -t pictet-image .
 docker run -p 5000:5000 -i -t pictet-image
 [DockerConsole]>>> python engine/runsearch.py Donald Trump
 ```
