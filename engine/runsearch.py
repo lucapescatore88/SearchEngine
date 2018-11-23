@@ -49,7 +49,7 @@ def runSearch(name,surname,midname="") :
 
 if __name__ == '__main__' :
 
-    from engineutils import parser
+    from parser import parser
     args = parser.parse_args()
     runSearch(args.name,args.surname)
 
