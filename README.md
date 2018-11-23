@@ -18,7 +18,8 @@ If you don't want to bother with all that you can build a Docker environment typ
 
 ```docker build -t pictet-image .
 docker run -p 5000:5000 -i -t pictet-image
-[DockerConsole]>>> python engine/runsearch.py Donald Trump```
+[DockerConsole]>>> python engine/runsearch.py Donald Trump
+```
 
 N.B.: If before building the Docker image you uncomment "run flask" in startup.sh,
 the docker will connect the app to the server. It works! On linux you can then go to a brower and use the app.
