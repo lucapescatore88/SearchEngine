@@ -1,10 +1,11 @@
-from engineutils import loadCurrencies, cleanData
+from engineutils import loadCurrencies, cleanData, country_df
 from HTMLParser import HTMLParser
 from bs4 import BeautifulSoup
 import wikipedia, requests
 from wikiutils import *
 import pandas as pd
 import re, os
+from unidecode import unidecode
 
 ## Initial lodings
 
@@ -28,9 +29,7 @@ def findWikiProfession(soup) :
                 break
 
         if not found : continue
-        #print "----------------------------------------"
         print "Found Profession tag!"
-        #print tr
 
         for li in tr.findChildren("li") :
             links =  li.findChildren("a")
@@ -55,8 +54,36 @@ def findWikiProfession(soup) :
 
 ### Find the Nationality
 
-def findWikiNationality(soup) :
+def findNationality(text) :
 
+    #cleantext = text.encode('ascii',errors='ignore')
+    cleantext = text
+    cleantext = re.sub(r'\0xe2|\0xc3'," ",cleantext).lower()
+    cleantext = re.sub("\\s+"," ",cleantext).lower()
+    nationalities = country_df['Nationality'].tolist() ## List of nationalities to compare against
+    nationalities.append("ENGLISH")
+    countries = country_df['Name'].tolist() ## List of countries to compare against
+
+    foundnat, foundcount = None, None
+    for nat in nationalities :
+        if nat.lower() in cleantext :
+            foundnat = nat
+    for country in countries :
+        if country.lower() in cleantext :
+            foundcount = country
+
+    if foundnat == "ENGLISH" : foundnat = "BRITISH"
+
+    ## If both are found give precedence to the nationality
+    if foundnat is not None : return foundnat
+    if foundcount is not None : 
+        countryinfo = country_df.loc[country_df['Name'] == foundcount]
+        return countryinfo['Nationality'].values[0]
+
+
+def findWikiNationality(soup,bio=None,fulltext=None) :
+
+    ## Find in infobox
     for tr in soup.findChildren("tr") :
         
         found = False
@@ -68,23 +95,40 @@ def findWikiNationality(soup) :
         if not found : continue
         print "Found Nationality tag!"
         td = tr.findChildren("td")[0]
-        return td.string
+        if td.string.upper() == "ENGLISH" : return "BRITISH"
+        return str(td.string)
 
         break
 
+    ## Find in biography
+
+    if bio is not None :
+        print "Searching for nationality in biography"
+        nat = findNationality(bio)
+        if nat is not None : return nat
+
+    ## Find in full Wiki page: just returns first nation or nationality found
+    ## Could add scoring to return most represented nationality 
+    if fulltext is not None :
+        print "Searching for nationality in full Wiki page"
+        return findNationality(fulltext)
 
 ### Find the Date of Birth
 
-def findWikiBirthDay(soup,name,surname) :
+def findWikiBirthDay(soup,bio=None) :
 
+    ## Find in infobox
     for el in soup.findChildren("span",{'class':'bday'}) :
         return el.text
 
-    names, bio = findWikiBiography(soup,name,surname)
-    groups = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)")
-    if len(groups)>0 :
-        #print groups
-        return groups[0] 
+    ## Find in biography
+    if bio is not None :
+
+        print "Looking for birthday in biography"
+        groups = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)")
+        if len(groups)>0 :
+            #print groups
+            return groups[0] 
 
     return "No date found... sorry"
 
@@ -101,31 +145,30 @@ def getNetWorthTag(soup) :
             if th.string == "Net worth" : 
                 return tr
 
-
 def findWikiNetWorth(soup) :
 
-    money = None
+    money = 0.
     tr = getNetWorthTag(soup)
 
-    if tr is not None : print "Found Net Worth tag!"
+    if tr is None : return money
+    print "Found Net Worth tag!"
     
     content = tr.__str__().lower().decode("utf8")
-    money = float(re.findall("\d+\.\d+",content)[0])    ## Getting value
+    money = float(re.findall("\\d+\\.\\d+",content)[0])    ## Getting value
     if 'billion' in content :
         money *= 1000
 
-    #print content
     curr = None
-    for row in currency_df.iterrows() :
+    for ir,row in currency_df.iterrows() :
 
-        if row [1]['Symbol'] in content :
-            curr = row[1]['Alphabetic Code']
-        elif row[1]['Alphabetic Code'] in content :
-            curr = row[1]['Alphabetic Code']
+        if row['Symbol'] in content :
+            curr = row['Alphabetic Code']
+        elif row['Alphabetic Code'] in content :
+            curr = row['Alphabetic Code']
 
+        ### Convert to US dollars
         if curr is not None :
             money = conv.convert(curr,"USD",money) 
-            #print money, "M USD"
             break
 
     return money
@@ -167,7 +210,7 @@ def parseWiki(name,surname,midname="",country="") :
     query = '{name} {midname} {surname} {country}'.format(
                 name    = name, 
                 midname = midname,
-                surname = surname
+                surname = surname,
                 country = country ).replace("\\s+"," ")
 
     pages = wikipedia.search(query)
@@ -190,15 +233,15 @@ def parseWiki(name,surname,midname="",country="") :
     midname, bio = findWikiBiography(soup,name,surname)
     profs = findWikiProfession(soup)
     if profs is not None :
-        profs = ' '.join(profs)
+        profs = ', '.join(profs)
     
     out = {
         'bio'        : bio, 
         'midname'    : midname,
         'profession' : profs,
-        'bday'       : findWikiBirthDay(soup,name,surname),
+        'bday'       : findWikiBirthDay(soup,bio),
         'money'      : findWikiNetWorth(soup),
-        'country'    : findWikiNationality(soup) 
+        'country'    : findWikiNationality(soup,bio,req.text)
     }
     return out, cleanData(req.text)
 

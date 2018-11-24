@@ -12,11 +12,11 @@ def loadCurrencies() :
     currency_df = pd.read_csv(dataroot+"currencies.csv")
     symbols = []
     
-    for row in currency_df.iterrows():
+    for ir,row in currency_df.iterrows():
         #print row[1]['Alphabetic Code'],
-        symbol = row[1]['Alphabetic Code']
+        symbol = row['Alphabetic Code']
         try : 
-            s = format_currency(1, row[1]['Alphabetic Code'],locale='en_US')
+            s = format_currency(1, row['Alphabetic Code'],locale='en_US')
             symbol = s.replace("1.00","")
         except : pass
         symbols.append(symbol)
@@ -74,12 +74,15 @@ def cleanData(data) :
 ### Returns a (A3,country name) tuple
 def convertCountry(code) :
 
+    if code == "" : return (None,code)
+
     ### If it is a number
     if str(code).isdigit() :
-        for row in country_df.iterrows() :
-            if int(row[1]["Code"]) == int(code) :
-                return (row[1]["A3"],row[1]["Name"])
+        for ir,row in country_df.iterrows() :
+            if int(row["Code"]) == int(code) :
+                return (row["A3"],row["Name"])
 
+    #print code, type(code)
     if isinstance(code,str) :
         code = code.upper().replace("\\s+"," ").lstrip().rstrip()
     else :
@@ -88,22 +91,27 @@ def convertCountry(code) :
 
     ### If it is a 2 char string. Assume it is a A2 code.
     if len(code)==2 :
-        for row in country_df.iterrows() :
-            if row[1]["A2"] == code :
-                return (row[1]["A3"],row[1]["Name"])        
+        for ir,row in country_df.iterrows() :
+            if row["A2"] == code :
+                return (row["A3"],row["Name"])   
 
     ### If it is a 3 char string. Assume it is a A3 code.
-    elif len(code)==3 :
+    if len(code)==3 :
         print "It's a A3"
-        for row in country_df.iterrows() :
-            if row[1]["A3"] == code :
-                return (row[1]["A3"],row[1]["Name"])      
+        for ir,row in country_df.iterrows() :
+            if row["A3"] == code :
+                return (row["A3"],row["Name"])   
 
     ### If it is a > 3 char string. Assume it is the full name.
-    elif len(code)>3 :
-        for row in country_df.iterrows() :
-            if code == row[1]["Name"] :
-                return (row[1]["A3"],row[1]["Name"])    
+    if len(code)>3 :
+        for ir,row in country_df.iterrows() :
+            if code == row["Name"] :
+                return (row["A3"],row["Name"])
+
+        ## Check if a nationality was given, otherwise assume country name
+        for ir,row in country_df.iterrows() :
+            if code == row["Nationality"] :
+                return (row["A3"],row["Name"])
 
     else :
         print "I'm sorry I didn't find the country", code+"."
@@ -113,7 +121,13 @@ def convertCountry(code) :
 
     return (None,None)
 
+def countryCode(text) :
 
+    A3, name = convertCountry(text)
+    if A3 is not None :
+        countryinfo = country_df.loc[country_df['A3']==A3]
+        return countryinfo['Code'].values[0]
+    return -1
 
 
 

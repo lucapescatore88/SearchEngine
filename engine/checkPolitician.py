@@ -110,7 +110,6 @@ def trainNLPModel(politicians,normals) :
     labels   = data[:,-1]
 
     ntest = int(-0.2 * len(data))
-    #ntest = 0
     features_train = features[:ntest,]
     labels_train = labels[:ntest,]
     features_test  = features[ntest:,]
@@ -130,7 +129,7 @@ def trainNLPModel(politicians,normals) :
 ### Given a text return if it is a politician 
 ### N.B.: Uses a pretrained model
 ### N.B.: Threshold can be changed in cfg.yml
-def isPolititian(person) :
+def isPolitician(person) :
 
     word_map, alltoks = makeDataSet([person],trained_word_map)
     data = np.zeros((len(toks),len(word_map)))
@@ -212,10 +211,10 @@ def trainSimpleNLPModel(politicians,normals) :
     word_map, norm_toks = makeDataSet(normals,word_map)
     
     testvector = tokensToVector(lemms_simple, word_map, label = None) 
-    pol_vecs  = [ tokensToVector(toks, word_map, label = None) for toks in pol_toks ]
-    norm_vecs = [ tokensToVector(toks, word_map, label = None) for toks in norm_toks ]
+    pol_vecs   = [ tokensToVector(toks, word_map, label = None) for toks in pol_toks ]
+    norm_vecs  = [ tokensToVector(toks, word_map, label = None) for toks in norm_toks ]
 
-    pol_scores = [ cosvec(testvector,vec) for vec in pol_vecs ]
+    pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs ]
     norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs ]
         
     ## The treshold will be the middle point between the two averages
@@ -253,10 +252,10 @@ if __name__ == "__main__" :
         print "Loaded from saved data"
         print backup.keys()
     
-    for row in data.iterrows() :
-        name         = row[1]["name"]
-        surname      = row[1]["surname"]
-        isPolititian = row[1]["polititian"]
+    for ir,row in data.iterrows() :
+        name         = row["name"]
+        surname      = row["surname"]
+        isPolititian = row["polititian"]
 
         ### Get data, from the net or from backup
         if (name,surname) in backup :

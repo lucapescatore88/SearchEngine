@@ -31,13 +31,16 @@ def create_app(test_config=None):
 
     @app.route('/action')
     def action():
-        flash('Engine is doing a lot of work, this will take a while.')
+        #flash('Engine is doing a lot of work, this will take a while.')
 
-        first = request.args.get('firstname')
-        last  = request.args.get('lastname')
-        res   = engine.runsearch.runSearch(first,last)
+        first   = str(request.args.get('firstname'))
+        last    = str(request.args.get('lastname'))
+        mid     = str(request.args.get('midname'))
+        country = str(request.args.get('countryselect'))
+        #request.form.get('countryselect')
+        print first, last, mid, country
+        res   = engine.runsearch.runSearch(first,last,mid)#,country)
 
-        fullname = "{0} {1} {2}".format(first,res['midname'],last) 
-        return render_template('main_res.html',fullname=fullname,**res)
+        return render_template('main_res.html',**res)
 
     return app

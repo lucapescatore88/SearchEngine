@@ -22,6 +22,7 @@ RUN pip install babel
 RUN pip install google-search-results
 RUN pip install pyyaml
 RUN pip install forex-python
+RUN pip install unidecode
 
 ## Stuff to try fix the port forwarding on Mac
 #RUN mkdir /var/run/sshd

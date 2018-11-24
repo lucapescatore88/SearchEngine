@@ -1,10 +1,19 @@
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
+from twitterutils import getTwitterCounts, getTwitterFollowers
+from engineutils import country_df, countryCode
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
+from googleutils import parseGoogle
+from wikiutils import parseWiki
 from xgboost import XGBClassifier
-import maplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import seaborn as sb
+import pandas as pd
 import numpy as np
+import os, re
 
+root = os.getenv("PICTETROOT")
 resroot         = root+"/resources/"
 modelXGfile     = resroot+"XG_famous_model.pkl"
 modelVotingfile = resroot+"voting_famous_model.pkl"
@@ -47,7 +56,7 @@ def trainFamousVotingModel(features,labels) :
     modelXG.fit(features,labels)
 
     modelRF = RandomForestClassifier(n_estimators=100, max_depth=4)
-    modelRF.fit(f_scaled,l)
+    modelRF.fit(features,labels)
 
 
     ### Get an idea of how each one score singularly
@@ -57,7 +66,7 @@ def trainFamousVotingModel(features,labels) :
 
     print "AdaBoost score: ", np.mean(scoresAda)
     print "XGBoost score: ", np.mean(scoresXG)
-    print "Random forest score: "np.mean(scoresRF)
+    print "Random forest score: ", np.mean(scoresRF)
 
     series = [('Ada',modelAda),('XG',scoresXG),('RF',scoresRF)]
     model  = VotingClassifier(estimators=series, voting='soft', n_jobs=4)
@@ -94,5 +103,112 @@ def isFamousVoting(features) :
     return int(trained_Votingmodel(features) > 0.5)
 
 
+## Define One Hot Encoder for countries
+country_ohe = OneHotEncoder(handle_unknown='ignore')
+country_le = LabelEncoder()
 
+unknown = pd.DataFrame(dict({'Code':-1}),index=[0])
+country_df['Code'] = country_df['Code'].append(unknown,ignore_index=True)
+country_lab_encoded = country_le.fit_transform(country_df['Code'])
+country_ohe.fit(country_lab_encoded.reshape(len(country_lab_encoded), 1))
+
+def oneHotCountryCode(code) :
+
+    codedf = pd.DataFrame(dict({'Code':code}), index=[0])
+    label_encoded = country_le.transform(codedf)
+    return country_ohe.transform(label_encoded.reshape(len(label_encoded), 1))
+
+
+### Parameters are already available quantities, so they won't be recalculated
+def getFamousFeatures(name,surname,isPolititian=None,country=None,money=None,job=None) :
+
+    fdict = {
+        'isPolititian'  : isPolititian,
+        'twitterCounts' : getTwitterCounts(name,surname),
+        'country'       : country,
+        #'job'           : None,
+        'money'         : money,
+        "nTwitFollowers": getTwitterFollowers(name,surname)
+    }
+
+    ### Take care of doing necessary conversions
+    if money is not None :
+        fdict['money'] = money
+        #float(re.findall("\\d+\\.\\d+",money)[0])
+
+    if country is not None :
+        fdict['country'] = countryCode(country)
+
+    ### Recalculate quantities if they are missing
+    if fdict['isPolititian'] is None :
+        googleout = parseGoogle(name,surname)
+        fdict['isPolititian'] = isPoliticianSimple(googleout+fulltext)
+    
+    if fdict['country'] is None or fdict['money'] is None :
+
+        info, fulltext = parseWiki(name,surname)
+        if country is None :
+            fdict['country'] = countryCode(info['country'])
+        #if job is None :
+        #    firstjob = info['profession'].split(",")[0]
+        #   fdict['job'] = firstjob
+        if money is None :
+            fdict['money'] = info["money"]
+
+    
+    ### Process data so that the model can read it
+    df = pd.DataFrame(fdict,index=[0])
+
+    ## Convert country into One Hot Encoding
+    #print "Encoding"
+    encoded = oneHotCountryCode(df['country'])
+    #df = pd.concat([df, encoded], axis=1)
+    #df.drop('country')
+
+    return df
+
+
+if __name__ == "__main__" :
+
+    from googleutils import parseGoogle
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument("--trainfile",default=resroot+"people.csv",
+        help="The name of the csv file with names of politicians and not")
+    parser.add_argument("--data",default=None,
+        help="Pickle file where data is saved")
+    parser.add_argument("--simple", action="store_true",
+        help="Will train the simple model instead of the LogisticRegression that is trained by default")
+    args = parser.parse_args()
+
+    data = pd.read_csv(args.trainfile)
+    features  = []
+    labels    = []
+    
+    backup = {}
+
+    ### To avoid running searches all the time can use backup
+    if args.data is not None and os.path.exists(args.data) :
+        backup = pickle.load(open(args.data))
+        print "Loaded from saved data"
+        print backup.keys()
+    
+    for ir,row in data.iterrows() :
+        name         = row["name"]
+        surname      = row["surname"]
+        isPolititian = row["polititian"]
+        isFamous     = row["famous"]
+
+        print "Getting infor for", name, surname
+        curfeatures = getFamousFeatures(name,surname,isPolititian=isPolititian)
+        features.append(curfeatures)
+        labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]))
+        
+    print features.head()
+    print labels.head()
+    sys.exit()
+
+    if args.simple : trainFamousModel(features,labels)
+    else : trainFamousVotingModel(features,labels)
 
