@@ -5,8 +5,8 @@ RUN set -xe \
     && apt-get update \
     && apt-get install -y libffi-dev libssl-dev \
     && apt-get install -y python python-dev python-pip \ 
-    && apt-get install -y libxft-dev libfreetype6 libfreetype6-dev
-#    && apt-get install -y openssh-server
+    && apt-get install -y libxft-dev libfreetype6 libfreetype6-dev \
+    && apt-get install -y openssh-server
 RUN pip install --upgrade pip
 RUN pip install pyopenssl ndg-httpsclient pyasn1
 
@@ -39,12 +39,8 @@ EXPOSE 5000
 COPY engine engine
 COPY flaskr flaskr
 COPY resources resources
-
-#RUN python test.py
-
-#COPY test/server.py server.py
 COPY startup.sh startup.sh
-COPY title.txt title.txt
+
 RUN chmod +x startup.sh
 CMD bash -C 'startup.sh';'bash'
 

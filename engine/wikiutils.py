@@ -109,9 +109,6 @@ def findWikiNetWorth(soup) :
 
     if tr is not None : print "Found Net Worth tag!"
     
-    #td = tr.findChildren("td")[0]
-    #a = tr.findChildren("a",{'class':'mw-redirect'})[0]
-
     content = tr.__str__().lower().decode("utf8")
     money = float(re.findall("\d+\.\d+",content)[0])    ## Getting value
     if 'billion' in content :
@@ -165,12 +162,13 @@ def findWikiBiography(soup,name,surname) :
 
     return names, bio
 
-def parseWiki(name,surname,midname="") :
+def parseWiki(name,surname,midname="",country="") :
 
-    query = '{name} {midname} {surname}'.format(
+    query = '{name} {midname} {surname} {country}'.format(
                 name    = name, 
                 midname = midname,
-                surname = surname )
+                surname = surname
+                country = country ).replace("\\s+"," ")
 
     pages = wikipedia.search(query)
 
@@ -200,7 +198,7 @@ def parseWiki(name,surname,midname="") :
         'profession' : profs,
         'bday'       : findWikiBirthDay(soup,name,surname),
         'money'      : findWikiNetWorth(soup),
-        'nation'     : findWikiNationality(soup) 
+        'country'    : findWikiNationality(soup) 
     }
     return out, cleanData(req.text)
 
