@@ -1,13 +1,12 @@
 import urllib, urllib2, re, requests, sys, json
 from engineutils import cleanData
 
-
 def parseGoogle(name,surname,midname="",country="",nhits=10) :
 
     querytxt = '{name} {midname} {surname} {country}'.format(
                 name    = name, 
                 midname = midname,
-                surname = surname
+                surname = surname,
                 country = country ).replace("\\s+"," ")
 
     #queryurl = "https://cse.google.com/cse"

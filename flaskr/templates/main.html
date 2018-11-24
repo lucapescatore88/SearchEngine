@@ -10,8 +10,8 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 		<link rel="stylesheet" href="/static/assets/css/main.css" />
-		<!--link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+		<!--link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script-->
 
 	</head>
@@ -28,11 +28,22 @@
                 Sorry, engine is not yet smart enough and this was not a requirement.</p>
 
                 <form action="/action">
+                <div width="28%">
                 First name:<br>
                 <input type="text" name="firstname" value="John">
-                <br>
+                </div>
+                <div width="28%">
+                Middle name:<br>
+                <input type="text" name="midname" value="">
+                </div>
+                <div width="28%">
                 Last name:<br>
                 <input type="text" name="lastname" value="Doe">
+                </div>
+                Country:<br>
+                <select id="countryselect" name="countryselect">
+                    <option value="">No selection</option>
+                </select>
                 <br><br>
                 <input class="btn btn-success" type="submit" value="Submit">
             </form>
@@ -72,6 +83,32 @@
 
 
 		<script src="../static/assets/js/main.js"></script>
+
+		<script>
+            sel = document.getElementById("countryselect");
+            
+            $(document).ready(function() {
+				$.ajax({
+				    type: "GET",
+				    url: "https://raw.githubusercontent.com/lucapescatore88/PictetAssessment/master/resources/countries.csv",
+				    dataType: "text",
+				    success: function(data) {processData(data);}
+				 });
+			});
+        			
+			function processData(data) 
+			{
+        		allTextLines = data.split(/\r\n|\n/);	
+        		for(var i = 1; i < allTextLines.length; i++)
+        		{
+        			toks = allTextLines[i].split(',');
+        			var option = document.createElement("option");
+            		option.text = toks[1];
+            		option.value = toks[1];
+            		sel.appendChild(option);
+            	}
+            }
+        </script>
 
 	</body>
 </html>
