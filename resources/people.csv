@@ -1,29 +1,29 @@
 surname,name,midname,famous,politician
 Trump,Donald,John,1,1
 Obama,Barack,Hussein II,1,1
-Macron,Emmanuel,Jean-Michel Frédéric,1,1
-Hollande,François,Gérard Georges Nicolas,1,1
+Macron,Emmanuel,Jean-Michel Frederic,1,1
+Hollande,Francois,Gerard Georges Nicolas,1,1
 Berlusconi,Silvio,,1,1
 Merkel,Angela,,1,1
 Bush,George,,1,1
 Clinton,Hillary,,1,1
 Napolitano,Giorgio,,1,1
 May,Theresa,Mary,1,1
-Mujica,Pepe,José Alberto Cordano,1,1
+Mujica,Pepe,Jose Alberto Cordano,1,1
 Renzi,Matteo,,1,1
 Salvini,Matteo,,1,1
 Berset,Alain,,1,1
-Shinzō,Abe,,1,1
+Shinzo,Abe,,1,1
 Jong-un,Kim,,1,1
-Putin,Vladimir,Vladimirovič,1,1
-Sánchez,Pedro,Pérez-Castejón,1,1
+Putin,Vladimir,Vladimirovic,1,1
+Sanchez,Pedro,Perez-Castejón,1,1
 Modi,Narendra,Damodardas,1,1
 Netanyahu,Benjamin,,1,1
-D’Alema,Massimo,,1,1
+D'Alema,Massimo,,1,1
 Grillo,Beppe,Giuseppe Piero,1,1
 Schwarzenegger,Arnold,Alois,1,1
 Aung san,Suo Kyi,,1,1
-Yāsser,Arafāt,,1,1
+Yasser,Arafat,,1,1
 Zedong,Mao,Tse-tung,1,1
 Mandela,Nelson,Rolihlahla,1,1
 Churchill,Winston,Leonard Spencer,1,1
@@ -36,8 +36,8 @@ Kissinger,Henry,Heinz Alfred,1,1
 Carter,Jimmy,James Earl Jr.,1,1
 Gandhi,Indira,Priyadarshini Nehru,1,1
 Trudeau,Justin,Pierre James,1,1
-Hussein,Saddam,Husayn ‘Abd al-Majid al-Tikriti,1,1
-Lenin,Vladimir,Il’ič Ul’janov,1,1
+Hussein,Saddam,Husayn 'Abd al-Majid al-Tikriti,1,1
+Lenin,Vladimir,Il'ic Ul'janov,1,1
 Sanders,Bernie,Bernard,1,1
 Castro,Fidel,Alejandro Ruz,1,1
 Trotsky,Leon,Lev Trockij,1,1
@@ -60,22 +60,22 @@ Borghesani,Maria,,0,0
 Spettoli,Claudia,,0,0
 Tomasi,Rossella,,0,0
 Di Pietro,Ornella,,0,0
-Sironič,Nevenka,,0,0
+Sironic,Nevenka,,0,0
 Franceschiello,Benedetta,,0,0
 Bellentani,Federico,,0,0
 Arkhipova,Daria,,0,0
 Hellgren,Ylva,,0,0
-Selva,Ivàn,,0,0
+Selva,Ivan,,0,0
 Tibaldi,Enrico,,0,0
-,Aurelio,,0,0
+Bay,Aurelio,,0,0
 Utz,Ursula,,0,0
-Frossard,Danièle,,0,0
-Exquis,Céline,,0,0
+Frossard,Daniele,,0,0
+Exquis,Celine,,0,0
 Bottani,Anne,,0,0
 Barreira de Sousa,Catarina,,0,0
 Prodon,Monica,,0,0
 Bonvin,Corinne,,0,0
-Bermúdez,Graciela,,0,0
+Bermudez,Graciela,,0,0
 Minelli,Paola,,0,0
 Benfenati,Beatrice,,0,0
 Tofani,Paola,,0,0
@@ -94,21 +94,21 @@ Pais,Preema,,0,0
 Rawat,Suresh,,0,0
 Dinu,Florin,,0,0
 Stetco,Daniela,,0,0
-Simões,Marlene,,0,0
+Simoes,Marlene,,0,0
 Barthelot,Rehani,,0,0
 Bitbol,Anne-Florence,,0,0
 Minghetti,Gabriele,,0,1
 Benaglia,Giancarlo,,0,1
-Dall’Olio,Riccardo,,0,1
+Dall'Olio,Riccardo,,0,1
 Filippini,Franca,,0,1
 Rossi,Benedetta,,0,1
 Freymond,Nicolas,,0,1
 Neal,Richard,,0,1
 Kocher,Jonas,,0,1
 Golay,Pascal,,0,1
-Montabert,Stéphane,,0,1
+Montabert,Stephane,,0,1
 Pinto,Marta,,0,1
-Delaquis,François,,0,1
+Delaquis,Francois,,0,1
 Jaccard,Nathalie,,0,1
 Golaz Grilli,Elodie,,0,1
 Montefusco,Dylan,,0,1
@@ -119,7 +119,7 @@ Burdet,Christian,,0,1
 Donne,Madeline,,0,1
 David,Samuel,,0,1
 Di Natale,Giovanni Battista,,0,1
-Gaillard,Léo,,0,1
+Gaillard,Leo,,0,1
 Lopes,Maria,,0,1
 Meienhofer,Werner,,0,1
 Pillati,Marilena,,0,1
@@ -129,14 +129,14 @@ Zaccaria,Susanne,,0,1
 Merola,Virginio,,0,1
 Jaques,Vincent,,0,1
 Aubert-Despland,Anne-Catherine,,0,1
-Züger,Eric,,0,1
+Zuger,Eric,,0,1
 Aubert,Jean-Jacques,,0,1
-Wyss,Mélanie,,0,1
+Wyss,Melanie,,0,1
 Deriaz,Philippe,,0,1
 Podio,Sylvie,,0,1
 Alessandro,Giovanni,,0,1
 Allamand,Victor,,0,1
-Besse,Chloé,,0,1
+Besse,Chloe,,0,1
 Buckle,Elise,,0,1
 Campiche,Thierry,,0,1
 Carenza,Marco,,0,1
@@ -191,7 +191,7 @@ Perry,Katy,Katheryn Elizabeth Hudson,1,0
 Spielberg,Steven,Allan,1,0
 Benigni,Roberto,Remigio,1,0
 Cage,Nicolas,Kim Coppola,1,0
-Affleck,Ben,Benjamin Géza Affleck-Boldt,1,0
+Affleck,Ben,Benjamin Geza Affleck-Boldt,1,0
 Willis,Bruce,Walter,1,0
 Travolta,John,Joseph,1,0
 Williams,Robin,McLaurin Williams,1,0
@@ -201,26 +201,26 @@ Downey,Robert,John Jr.,1,0
 Coppola,Francis,Ford,1,0
 Coppola,Sofia,Carmina,1,0
 Hill,Terence,Mario Girotti,1,0
-,Rihanna,Robyn Fenty,1,0
-,Lady Gaga,Stefani Joanne Angelina Germanotta,1,0
+Fenty,Robyn,Rihanna,1,0
+Germanotta,Stefani Lady Gaga,Lady Gaga,1,0
 Rossi,Vasco,,1,0
-,Jovanotti,Lorenzo Cherubini,1,0
+Cherubini,Lorenzo,Jovanotti,1,0
 Bocelli,Andrea,,1,0
-,Beyoncé,Giselle Knowles-Carter,1,0
-,Zucchero,Adelmo Fornaciari,1,0
+Knowles-Carter,Giselle,Beyonce,1,0
+Fornaciari,Zucchero,Adelmo Fornaciari,1,0
 Cyrus,Miley,Ray,1,0
-,Adele,Laurie Blue Adkins,1,0
+Adkins,Laurie Blue,Adele,1,0
 Carey,Mariah,,1,0
 Dylan,Bob,Robert Allen Zimmerman,1,0
 Timberlake,Justin,Randall,1,0
 Spears,Britney,Jean,1,0
 John,Elton,Hercules,1,0
 Aguilera,Christina,María,1,0
-Dion,Céline,Marie Claudette,1,0
-,Shakira,Isabel Mebarak Ripoll,1,0
-,Sting,Gordon Matthew Thomas Sumner,1,0
-,Sia,Kate Isobelle Furler,1,0
-,Eminem,Marshall Bruce Mathers III,1,0
+Dion,Celine,Marie Claudette,1,0
+Mebarak Ripoll,Isabel ,Shakira,1,0
+Gordon Matthew Thomas,Sumner,Sting,1,0
+Furler,Kate Isobelle,Sia,1,0
+Mathers III,Marshall Bruce ,Eminem,1,0
 McCartney,Paul,James,1,0
 Battiato,Franco,Francesco,1,0
 Cristiano,Ronaldo,Dos Santos Aveiro,1,0

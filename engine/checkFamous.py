@@ -94,11 +94,13 @@ def getClfsCorr(clfs,test) :
 
 def isFamous(features) :
 
-    return int(trained_XGmodel(features) > 0.5)
+    #return int(trained_XGmodel(features) > 0.5)
+    return True
 
 def isFamousVoting(features) :
 
-    return int(trained_Votingmodel(features) > 0.5)
+    #return int(trained_Votingmodel(features) > 0.5)
+    return True
 
 
 ## Define One Hot Encoder for countries
@@ -118,6 +120,9 @@ def oneHotCountryCode(code) :
 
 
 ### Parameters are already available quantities, so they won't be recalculated
+
+columns=['isPolitician','twitterCounts','country','money','nTwitFollowers']
+
 def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job=None) :
 
     fdict = {
@@ -130,10 +135,6 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     }
 
     ### Take care of doing necessary conversions
-    if money is not None :
-        fdict['money'] = money
-        #float(re.findall("\\d+\\.\\d+",money)[0])
-
     if country is not None :
         fdict['country'] = countryCode(country)
 
@@ -174,19 +175,18 @@ if __name__ == "__main__" :
 
     from googleutils import parseGoogle
     from argparse import ArgumentParser
+    import pickle
 
     parser = ArgumentParser()
     parser.add_argument("--trainfile",default=resroot+"people.csv",
         help="The name of the csv file with names of politicians and not")
     parser.add_argument("--data",default=None,
         help="Pickle file where data is saved")
-    parser.add_argument("--simple", action="store_true",
-        help="Will train the simple model instead of the LogisticRegression that is trained by default")
     args = parser.parse_args()
 
     data = pd.read_csv(args.trainfile)
-    features  = []
-    labels    = []
+    features  = pd.DataFrame(columns=columns)
+    labels    = pd.DataFrame(columns=['Famous'])
     
     backup = {}
 
@@ -203,28 +203,28 @@ if __name__ == "__main__" :
         isFamous     = row["famous"]
 
         try :
-            print "Getting in for for", name, surname
+            print "Getting info for", name, surname
             key = (name,surname,isPolitician,isFamous)
-            if key in backup :
+            if key in backup.keys() :
                 curfeatures = backup[key]
             else :
-                curfeatures = getFamousFeatures(name,surname,isPolitician=isPolitician)
+                curfeatures = getFamousFeatures(name,surname)
             
-            features.append(curfeatures)
-            labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]))
+            features.append(curfeatures, ignore_index=True)
+            labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]), ignore_index=True)
 
+            print "Done! Saving info"
             backup[key] = curfeatures
             if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
         
         except :
             continue
     
-    if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
-
+    #if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
     #print features.head()
     #print labels.head()
     #sys.exit()
 
-    if args.simple : trainFamousModel(features,labels)
-    else : trainFamousVotingModel(features,labels)
+    trainFamousModel(features,labels)
+    trainFamousVotingModel(features,labels)
 

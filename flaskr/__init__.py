@@ -1,3 +1,8 @@
+import warnings
+warnings.simplefilter("ignore")
+warnings.filterwarnings("ignore",category=DeprecationWarning)
+
+from urlparse import urlparse, parse_qs
 import os, sys
 import engine
 
@@ -26,20 +31,23 @@ def create_app(test_config=None):
 
     @app.route('/')
     def index():
-        return render_template('main.html')
+        return render_template('main.html',response=False)
 
-    @app.route('/action')
+    @app.route('/action',methods = ['GET','POST'])
     def action():
         #flash('Engine is doing a lot of work, this will take a while.')
 
         first   = str(request.args.get('firstname'))
         last    = str(request.args.get('lastname'))
         mid     = str(request.args.get('midname'))
-        country = str(request.args.get('countryselect'))
-        #request.form.get('countryselect')
-        print first, last, mid, country
-        res   = engine.runsearch.runSearch(first,last,mid)#,country)
+        
+        pars = parse_qs(urlparse(request.url).query)
+        country = ""
+        if 'countryselect' in pars.keys() :
+            country = pars['countryselect'][0]
 
-        return render_template('main_res.html',**res)
+        res   = engine.runsearch.runSearch(first,last,mid,country)
+
+        return render_template('main.html',response=True,**res)
 
     return app

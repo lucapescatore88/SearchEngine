@@ -26,8 +26,12 @@ def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links'
 
     myurl = queryurl+urllib.urlencode(f)
     req = requests.get(myurl)
+    results = json.loads(req.text)
 
-    results = json.loads(req.text)["items"]
+    if 'items' not in results :
+        print "Sorry you finished your Google searches for today"
+        return ""
+    results = results["items"]
 
     fulldata = ""       ## Put all data together
     nok = 0

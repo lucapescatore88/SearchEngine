@@ -39,7 +39,7 @@ class TwitterListener(StreamListener):
 ### The number can be tuned in cfg.yml 
 def getTwitterCounts(name,surname) :
     
-    fname = "{name}_{surname}_twitter.json".format(name=name,surname=surname)
+    fname = "twitter.json"
     shared['file'] = open(fname, 'w')
     shared['time'] = time.time()
 

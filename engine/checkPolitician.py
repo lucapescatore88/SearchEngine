@@ -9,8 +9,8 @@ import pandas as pd
 import yaml, pickle
 import numpy as np
 
-modelfile = resroot+"NLP_polititian_model.pkl"
-mapfile   = resroot+"NLP_polititian_wordmap.pkl"
+modelfile = resroot+"NLP_politician_model.pkl"
+mapfile   = resroot+"NLP_politician_wordmap.pkl"
 
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
@@ -229,8 +229,6 @@ if __name__ == "__main__" :
         help="The name of the csv file with names of politicians and not")
     parser.add_argument("--data",default=None,
         help="Pickle file where data is saved")
-    parser.add_argument("--simple", action="store_true",
-        help="Will train the simple model instead of the LogisticRegression that is trained by default")
     args = parser.parse_args()
 
     data = pd.read_csv(args.trainfile)
@@ -248,25 +246,28 @@ if __name__ == "__main__" :
     for ir,row in data.iterrows() :
         name         = row["name"]
         surname      = row["surname"]
-        isPolititian = row["polititian"]
+        isPolitician = row["politician"]
 
         ### Get data, from the net or from backup
         try :
+
+            print "Getting google text for", name, surname
             if (name,surname) in backup :
                 out = backup[(name,surname)]
             else :
                 out = parseGoogle(name,surname)
         
-            if isPolititian == 1 : politicians.append(out)
+            if out != "" : backup[(name,surname)] = out
+            else : continue
+
+            if len(backup) > 0 : pickle.dump(backup,open("backup_politician.pkl","w"))
+            if isPolitician == 1 : politicians.append(out)
             else : normals.append(out)
 
-            if out != "" : backup[(name,surname)] = out
-            if len(backup) > 0 : pickle.dump(backup,open("backup.pkl","w"))
-            
         except :
             continue
 
-    if args.simple : trainSimpleNLPModel(politicians,normals)
-    else : trainNLPModel(politicians,normals)
+    trainSimpleNLPModel(politicians,normals)
+    trainNLPModel(politicians,normals)
 
 

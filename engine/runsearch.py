@@ -11,11 +11,6 @@ warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 def runSearch(name,surname,midname="",country="") :
 
-    #if not isinstance(name,str) or not isinstance(surname,str) or  not isinstance(midname,str) or not isinstance(country,str) :
-    #    print "All inputs need to be strings"
-    #    return {}
-    print '"%s" "%s"' % (name,surname)
-
     country_code, country_name = convertCountry(country)
 
     out = {'name' : name, 'surname' : surname, 'midname' : midname, 'country' : country}

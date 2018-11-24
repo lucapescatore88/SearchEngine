@@ -1,11 +1,10 @@
 from engineutils import loadCurrencies, cleanData, country_df
 from HTMLParser import HTMLParser
+from unidecode import unidecode
 from bs4 import BeautifulSoup
 import wikipedia, requests
-from wikiutils import *
 import pandas as pd
 import re, os
-from unidecode import unidecode
 
 ## Initial lodings
 
@@ -125,8 +124,8 @@ def findWikiBirthDay(soup,bio=None) :
     if bio is not None :
 
         print "Looking for birthday in biography"
-        groups = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)")
-        if len(groups)>0 :
+        groups = re.match("(?i)\(.*?born.*?(\d{4}).*?\)",bio)
+        if groups is not None and len(groups)>0 :
             #print groups
             return groups[0] 
 
@@ -207,6 +206,7 @@ def findWikiBiography(soup,name,surname) :
 
 def parseWiki(name,surname,midname="",country="") :
 
+    print "Now searching Wikipedia"
     query = '{name} {midname} {surname} {country}'.format(
                 name    = name, 
                 midname = midname,
