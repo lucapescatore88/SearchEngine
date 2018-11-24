@@ -1,20 +1,18 @@
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
 from twitterutils import getTwitterCounts, getTwitterFollowers
-from engineutils import country_df, countryCode
+from engineutils import country_df, countryCode, resroot
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
 from googleutils import parseGoogle
-from wikiutils import parseWiki
 from xgboost import XGBClassifier
+from wikiutils import parseWiki
 import matplotlib.pyplot as plt
 import seaborn as sb
 import pandas as pd
 import numpy as np
 import os, re
 
-root = os.getenv("PICTETROOT")
-resroot         = root+"/resources/"
 modelXGfile     = resroot+"XG_famous_model.pkl"
 modelVotingfile = resroot+"voting_famous_model.pkl"
 
@@ -120,10 +118,10 @@ def oneHotCountryCode(code) :
 
 
 ### Parameters are already available quantities, so they won't be recalculated
-def getFamousFeatures(name,surname,isPolititian=None,country=None,money=None,job=None) :
+def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job=None) :
 
     fdict = {
-        'isPolititian'  : isPolititian,
+        'isPolitician'  : isPolitician,
         'twitterCounts' : getTwitterCounts(name,surname),
         'country'       : country,
         #'job'           : None,
@@ -140,9 +138,9 @@ def getFamousFeatures(name,surname,isPolititian=None,country=None,money=None,job
         fdict['country'] = countryCode(country)
 
     ### Recalculate quantities if they are missing
-    if fdict['isPolititian'] is None :
+    if fdict['isPolitician'] is None :
         googleout = parseGoogle(name,surname)
-        fdict['isPolititian'] = isPoliticianSimple(googleout+fulltext)
+        fdict['isPolitician'] = isPoliticianSimple(googleout+fulltext)
     
     if fdict['country'] is None or fdict['money'] is None :
 
@@ -169,6 +167,10 @@ def getFamousFeatures(name,surname,isPolititian=None,country=None,money=None,job
 
 
 if __name__ == "__main__" :
+
+    import warnings
+    warnings.simplefilter("ignore")
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
 
     from googleutils import parseGoogle
     from argparse import ArgumentParser
@@ -197,17 +199,31 @@ if __name__ == "__main__" :
     for ir,row in data.iterrows() :
         name         = row["name"]
         surname      = row["surname"]
-        isPolititian = row["polititian"]
+        isPolitician = row["politician"]
         isFamous     = row["famous"]
 
-        print "Getting infor for", name, surname
-        curfeatures = getFamousFeatures(name,surname,isPolititian=isPolititian)
-        features.append(curfeatures)
-        labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]))
+        try :
+            print "Getting in for for", name, surname
+            key = (name,surname,isPolitician,isFamous)
+            if key in backup :
+                curfeatures = backup[key]
+            else :
+                curfeatures = getFamousFeatures(name,surname,isPolitician=isPolitician)
+            
+            features.append(curfeatures)
+            labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]))
+
+            backup[key] = curfeatures
+            if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
         
-    print features.head()
-    print labels.head()
-    sys.exit()
+        except :
+            continue
+    
+    if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
+
+    #print features.head()
+    #print labels.head()
+    #sys.exit()
 
     if args.simple : trainFamousModel(features,labels)
     else : trainFamousVotingModel(features,labels)

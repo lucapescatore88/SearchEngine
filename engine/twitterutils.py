@@ -2,19 +2,10 @@ from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler, Stream
 from multiprocessing import Process
 from datetime import datetime
+from engineutils import config
 import time, json, os, yaml
 import subprocess as sb
 import tweepy
-
-root = os.getenv("PICTETROOT")
-
-try :
-    f = open(root+"/cfg.yml")
-    config = yaml.load(f)
-    print "Configuration:",config
-except Exception as e: 
-    print "Config file is not good"
-    print(e)
 
 consumer_key    = "uZEo4lMBcPClUMdPxMFynEAVT"
 consumer_secret = "fW4l7eVPEl9mkPQPRNURJru7nYqduIQNTTMHzr3jMDxdT9tsi1"
@@ -41,7 +32,7 @@ class TwitterListener(StreamListener):
         return True
  
     def on_error(self, status):
-        print(status)
+        #print(status)
         return True
 
 ### Get the numeber of hits in the last N seconds
@@ -70,7 +61,6 @@ def getTwitterCounts(name,surname) :
 def getTwitterFollowers(name,surname) :
     
     try:
-    
         user=api.get_user(name+surname)
         print "Twitter user exists!"
         #for k,v in user.__dict__.iteritems() :

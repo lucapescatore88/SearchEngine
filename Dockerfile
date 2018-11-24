@@ -23,6 +23,10 @@ RUN pip install google-search-results
 RUN pip install pyyaml
 RUN pip install forex-python
 RUN pip install unidecode
+RUN pip install tweepy
+RUN pip install xgboost
+RUN pip install nltk
+RUN python -c 'import nltk; nltk.download("all")'
 
 ## Stuff to try fix the port forwarding on Mac
 #RUN mkdir /var/run/sshd
@@ -41,6 +45,7 @@ COPY engine engine
 COPY flaskr flaskr
 COPY resources resources
 COPY startup.sh startup.sh
+COPY cfg.yml cfg.yml
 
 RUN chmod +x startup.sh
 CMD bash -C 'startup.sh';'bash'

@@ -1,7 +1,7 @@
 import urllib, urllib2, re, requests, sys, json
-from engineutils import cleanData
+from engineutils import cleanData, config
 
-def parseGoogle(name,surname,midname="",country="",nhits=10) :
+def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links']) :
 
     querytxt = '{name} {midname} {surname} {country}'.format(
                 name    = name, 

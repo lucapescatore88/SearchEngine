@@ -1,6 +1,7 @@
 from sklearn.linear_model import LogisticRegression
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from engineutils import config, resroot
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
 import string, math, os, sys
@@ -8,18 +9,6 @@ import pandas as pd
 import yaml, pickle
 import numpy as np
 
-root = os.getenv("PICTETROOT")
-
-try :
-    f = open(root+"/cfg.yml")
-    config = yaml.load(f)
-    print "Configuration:",config
-except Exception as e: 
-    print "Config file is not good"
-    print(e)
-    sys.exit()
-
-resroot   = root+"/resources/"
 modelfile = resroot+"NLP_polititian_model.pkl"
 mapfile   = resroot+"NLP_polititian_wordmap.pkl"
 
@@ -228,6 +217,10 @@ def trainSimpleNLPModel(politicians,normals) :
 
 if __name__ == "__main__" :
 
+    import warnings
+    warnings.simplefilter("ignore")
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+
     from googleutils import parseGoogle
     from argparse import ArgumentParser
 
@@ -258,22 +251,21 @@ if __name__ == "__main__" :
         isPolititian = row["polititian"]
 
         ### Get data, from the net or from backup
-        if (name,surname) in backup :
-            out = backup[(name,surname)]
-        else :
-            out = parseGoogle(name,surname)
+        try :
+            if (name,surname) in backup :
+                out = backup[(name,surname)]
+            else :
+                out = parseGoogle(name,surname)
         
-        if isPolititian == 1 : politicians.append(out)
-        else : normals.append(out)
+            if isPolititian == 1 : politicians.append(out)
+            else : normals.append(out)
 
-        #f = open("norm","w")
-        #f.write(out.encode('utf-8'))
-        #f.close()
+            if out != "" : backup[(name,surname)] = out
+            if len(backup) > 0 : pickle.dump(backup,open("backup.pkl","w"))
+            
+        except :
+            continue
 
-        if out != "" : backup[(name,surname)] = out
-
-    if len(backup) > 0 : pickle.dump(backup,open("backup.pkl","w"))
-    
     if args.simple : trainSimpleNLPModel(politicians,normals)
     else : trainNLPModel(politicians,normals)
 

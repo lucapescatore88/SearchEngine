@@ -1,21 +1,248 @@
-name,surname,polititian,famous
-David, Guetta, 0, 1
-John, Depp, 0, 1
-Sharon, Stone, 0, 1
-David, Beckham, 0, 1
-John, Oliver, 0, 1
-Cristiano, Ronaldo, 0, 1
-Woody, Allen, 0, 1
-Paul, Allen, 0, 1
-Bill, Gates, 0, 1
-Tom, Hanks, 0, 1
-Donald, Trump, 1, 1
-Silvio, Berlusconi, 1, 1
-Emmanuel, Macron, 1, 1
-Matteo, Salvini, 1, 1
-Luigi, Di Maio, 1, 1
-Recep, Erdogan, 1, 1
-Vladimir, Putin, 1, 1
-Barak, Obama, 1, 1
-Winston, Churchill, 1, 1
-Benito, Mussolini, 1, 1
+surname,name,midname,famous,politician
+Trump,Donald,John,1,1
+Obama,Barack,Hussein II,1,1
+Macron,Emmanuel,Jean-Michel Frédéric,1,1
+Hollande,François,Gérard Georges Nicolas,1,1
+Berlusconi,Silvio,,1,1
+Merkel,Angela,,1,1
+Bush,George,,1,1
+Clinton,Hillary,,1,1
+Napolitano,Giorgio,,1,1
+May,Theresa,Mary,1,1
+Mujica,Pepe,José Alberto Cordano,1,1
+Renzi,Matteo,,1,1
+Salvini,Matteo,,1,1
+Berset,Alain,,1,1
+Shinzō,Abe,,1,1
+Jong-un,Kim,,1,1
+Putin,Vladimir,Vladimirovič,1,1
+Sánchez,Pedro,Pérez-Castejón,1,1
+Modi,Narendra,Damodardas,1,1
+Netanyahu,Benjamin,,1,1
+D’Alema,Massimo,,1,1
+Grillo,Beppe,Giuseppe Piero,1,1
+Schwarzenegger,Arnold,Alois,1,1
+Aung san,Suo Kyi,,1,1
+Yāsser,Arafāt,,1,1
+Zedong,Mao,Tse-tung,1,1
+Mandela,Nelson,Rolihlahla,1,1
+Churchill,Winston,Leonard Spencer,1,1
+Reagan,Ronald,Wilson,1,1
+Roosvelt,Franklin,Delano,1,1
+Thatcher,Margaret,Hilda,1,1
+Kennedy,John,Fitzgerald,1,1
+Nixon,Richard,Milhous,1,1
+Kissinger,Henry,Heinz Alfred,1,1
+Carter,Jimmy,James Earl Jr.,1,1
+Gandhi,Indira,Priyadarshini Nehru,1,1
+Trudeau,Justin,Pierre James,1,1
+Hussein,Saddam,Husayn ‘Abd al-Majid al-Tikriti,1,1
+Lenin,Vladimir,Il’ič Ul’janov,1,1
+Sanders,Bernie,Bernard,1,1
+Castro,Fidel,Alejandro Ruz,1,1
+Trotsky,Leon,Lev Trockij,1,1
+Blair,Tony,Anthony Charles Lynton,1,1
+Cameron,David,William Donald Cameron,1,1
+Rockfeller,Nelson,Aldrich,1,1
+Le Pen,Marine,Marion Anne Perrine,1,1
+Di Maio,Luigi,,1,1
+Bemba,Jean-Pierre,Gombo,1,1
+Letta,Enrico,,1,1
+Bertossa,Lucia,,0,0
+Pescatore,Luca,,0,0
+Deiro,Ingrid,,0,0
+Merli,Martina,,0,0
+Muscogiuri,Lorenzo,,0,0
+Armitage,Lewis,,0,0
+Averink,Tessa,,0,0
+Dudeanu,Alina,,0,0
+Borghesani,Maria,,0,0
+Spettoli,Claudia,,0,0
+Tomasi,Rossella,,0,0
+Di Pietro,Ornella,,0,0
+Sironič,Nevenka,,0,0
+Franceschiello,Benedetta,,0,0
+Bellentani,Federico,,0,0
+Arkhipova,Daria,,0,0
+Hellgren,Ylva,,0,0
+Selva,Ivàn,,0,0
+Tibaldi,Enrico,,0,0
+,Aurelio,,0,0
+Utz,Ursula,,0,0
+Frossard,Danièle,,0,0
+Exquis,Céline,,0,0
+Bottani,Anne,,0,0
+Barreira de Sousa,Catarina,,0,0
+Prodon,Monica,,0,0
+Bonvin,Corinne,,0,0
+Bermúdez,Graciela,,0,0
+Minelli,Paola,,0,0
+Benfenati,Beatrice,,0,0
+Tofani,Paola,,0,0
+Bertoni,Roberto,,0,0
+Agostini,Alessandro,,0,0
+Dallolio,Aurora,,0,0
+Peta,Elena,,0,0
+Merli,Martina,,0,0
+Muscogiuri,Lorenzo,,0,0
+Massa,Lorenzo,,0,0
+Solund Kirsebom,Veronica,,0,0
+Rincon,Marcela,,0,0
+Akhtar,Nadim,,0,0
+Bellee,Violaine,,0,0
+Pais,Preema,,0,0
+Rawat,Suresh,,0,0
+Dinu,Florin,,0,0
+Stetco,Daniela,,0,0
+Simões,Marlene,,0,0
+Barthelot,Rehani,,0,0
+Bitbol,Anne-Florence,,0,0
+Minghetti,Gabriele,,0,1
+Benaglia,Giancarlo,,0,1
+Dall’Olio,Riccardo,,0,1
+Filippini,Franca,,0,1
+Rossi,Benedetta,,0,1
+Freymond,Nicolas,,0,1
+Neal,Richard,,0,1
+Kocher,Jonas,,0,1
+Golay,Pascal,,0,1
+Montabert,Stéphane,,0,1
+Pinto,Marta,,0,1
+Delaquis,François,,0,1
+Jaccard,Nathalie,,0,1
+Golaz Grilli,Elodie,,0,1
+Montefusco,Dylan,,0,1
+Annen,Shantidas,,0,1
+Borer,Georges,,0,1
+Boulaz,David,,0,1
+Burdet,Christian,,0,1
+Donne,Madeline,,0,1
+David,Samuel,,0,1
+Di Natale,Giovanni Battista,,0,1
+Gaillard,Léo,,0,1
+Lopes,Maria,,0,1
+Meienhofer,Werner,,0,1
+Pillati,Marilena,,0,1
+Aitini,Alberto,,0,1
+Oriolo,Valentina,,0,1
+Zaccaria,Susanne,,0,1
+Merola,Virginio,,0,1
+Jaques,Vincent,,0,1
+Aubert-Despland,Anne-Catherine,,0,1
+Züger,Eric,,0,1
+Aubert,Jean-Jacques,,0,1
+Wyss,Mélanie,,0,1
+Deriaz,Philippe,,0,1
+Podio,Sylvie,,0,1
+Alessandro,Giovanni,,0,1
+Allamand,Victor,,0,1
+Besse,Chloé,,0,1
+Buckle,Elise,,0,1
+Campiche,Thierry,,0,1
+Carenza,Marco,,0,1
+Colomb,Jacky,,0,1
+Darbre Gubbins,Florence,,0,1
+De Garrini,Luciano,,0,1
+Felix,Yves,,0,1
+Girard,Pierre,,0,1
+Jackson,Brian,,0,1
+Kardashian,Kim,Noel West,1,0
+Depp,Johnny,Christopher II,1,0
+Winslet,Kate,Elizabeth,1,0
+Knightley,Keira,Christina,1,0
+Swank,Hilary,Ann,1,0
+Portman,Natalie,Hershlag,1,0
+Pitt,Brad,William Bradley,1,0
+Jolie,Angelina,Voight,1,0
+King,Stephen,Edwin,1,0
+DiCaprio,Leonardo,Wilhem,1,0
+Watson,Emma,Charlotte Duerre,1,0
+Radcliffe,Daniel,Jacob,1,0
+Streep,Maryl,Mary Louise,1,0
+Freeman,Morgan,,1,0
+Rowling,J.K.,Joanna,1,0
+Johansson,Scarlett,Ingrid,1,0
+Hunziker,Michelle,Yvonne,1,0
+Bellucci,Monica,Anna Maria,1,0
+Roberts,Julia,Fiona,1,0
+Theron,Charlize,,1,0
+Stone,Sharon,Yvonne,1,0
+Aniston,Jennifer,Joanna Anastasakis,1,0
+Kidman,Nicole,Mary,1,0
+Foster,Jodie,Alicia Christian,1,0
+Gyatso,Tenzin,Dalai Lama,1,0
+Lawrence,Jennifer,Shrader,1,0
+Thurman,Uma,Karuna,1,0
+McEwan,Ian,Russell,1,0
+Diaz,Cameron,Michelle,1,0
+Ryder,Winona,Laura Horowitz,1,0
+Lopez,Jennifer,Lynn,1,0
+Madonna,,Louise Veronica Ciccone,1,0
+Cruise,Tom,Thomas Cruise Mapother IV,1,0
+Clooney,George,Timothy,1,0
+Allen,Woody,Heywood,1,0
+Ford,Harrison,,1,0
+McConaughey,Matthew,David,1,0
+Penn,Sean,Justin,1,0
+Hanks,Tom,Thomas Jeffrey,1,0
+Stone,Emma,Emily Jean,1,0
+Blomm,Orlando,Jonathan Blanchard,1,0
+Perry,Katy,Katheryn Elizabeth Hudson,1,0
+Spielberg,Steven,Allan,1,0
+Benigni,Roberto,Remigio,1,0
+Cage,Nicolas,Kim Coppola,1,0
+Affleck,Ben,Benjamin Géza Affleck-Boldt,1,0
+Willis,Bruce,Walter,1,0
+Travolta,John,Joseph,1,0
+Williams,Robin,McLaurin Williams,1,0
+Gere,Richard,Tiffany,1,0
+Paltrow,Gwyneth,Kate Martin,1,0
+Downey,Robert,John Jr.,1,0
+Coppola,Francis,Ford,1,0
+Coppola,Sofia,Carmina,1,0
+Hill,Terence,Mario Girotti,1,0
+,Rihanna,Robyn Fenty,1,0
+,Lady Gaga,Stefani Joanne Angelina Germanotta,1,0
+Rossi,Vasco,,1,0
+,Jovanotti,Lorenzo Cherubini,1,0
+Bocelli,Andrea,,1,0
+,Beyoncé,Giselle Knowles-Carter,1,0
+,Zucchero,Adelmo Fornaciari,1,0
+Cyrus,Miley,Ray,1,0
+,Adele,Laurie Blue Adkins,1,0
+Carey,Mariah,,1,0
+Dylan,Bob,Robert Allen Zimmerman,1,0
+Timberlake,Justin,Randall,1,0
+Spears,Britney,Jean,1,0
+John,Elton,Hercules,1,0
+Aguilera,Christina,María,1,0
+Dion,Céline,Marie Claudette,1,0
+,Shakira,Isabel Mebarak Ripoll,1,0
+,Sting,Gordon Matthew Thomas Sumner,1,0
+,Sia,Kate Isobelle Furler,1,0
+,Eminem,Marshall Bruce Mathers III,1,0
+McCartney,Paul,James,1,0
+Battiato,Franco,Francesco,1,0
+Cristiano,Ronaldo,Dos Santos Aveiro,1,0
+Federer,Roger,,1,0
+Nadal,Rafael,Parera,1,0
+Bolt,Usain,St. Leo,1,0
+Williams,Serena,Jameka,1,0
+Rossi,Valentino,,1,0
+Martin,George R. R.,Raymond Richard,1,0
+Chechi,Jury,Alessandro Dimitri,1,0
+Oliver,John,William,1,0
+Letterman,David,Michael,1,0
+DeGeneres,Ellen,Lee,1,0
+Harris,Neil,Patrick,1,0
+Hannigan,Alyson,Lee,1,0
+Bieber,Justin,Drew,1,0
+Sheeran,Ed,Edward Christopher,1,0
+Gomez,Selena,Marie,1,0
+Paquin,Anna,Helene,1,0
+Pompeo,Ellen,Kathleen,1,0
+Dempsey,Patrick,Galen,1,0
+Morgan,Jeffrey,Dean,1,0
+Burton,Tim,Timothy Walter,1,0
+Tarantino,Quentin,Jerome,1,0
+Eastwood,Clint,Clinton Jr.,1,0

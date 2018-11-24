@@ -1,7 +1,21 @@
+import re, os, sys, yaml
 import pandas as pd
-import re, os
 
-dataroot = os.getenv("PICTETROOT")+"/resources/"
+### Generic paths
+
+root    = os.getenv("PICTETROOT")
+resroot = root+"/resources/"
+
+### Open config file and make it available via imports
+config = {}
+try :
+    f = open(root+"/cfg.yml")
+    config = yaml.load(f)
+    print "Configuration:",config
+except Exception as e: 
+    print "Config file is not good"
+    print(e)
+    sys.exit()
 
 ### Function to load the DB with currency codes and add symbols
 
@@ -9,7 +23,7 @@ def loadCurrencies() :
 
     from babel.numbers import format_currency
 
-    currency_df = pd.read_csv(dataroot+"currencies.csv")
+    currency_df = pd.read_csv(resroot+"currencies.csv")
     symbols = []
     
     for ir,row in currency_df.iterrows():
@@ -29,7 +43,7 @@ def loadCurrencies() :
 
 def loadCountries() :
 
-    df = pd.read_csv(dataroot+"countries.csv")
+    df = pd.read_csv(resroot+"countries.csv")
     df['A3'] = df['A3'].apply(lambda x: re.sub("\\s+","",x))
     df['A2'] = df['A2'].apply(lambda x: re.sub("\\s+","",x))
     df['Name'] = df['Name'].apply(lambda x: re.sub("\\s+"," ",x).lstrip().rstrip().upper())
