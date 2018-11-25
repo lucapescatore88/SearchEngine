@@ -5,9 +5,9 @@ from wikiutils import parseWiki
 from checkFamous import isFamous, isFamousVoting, getFamousFeatures
 from checkPolitician import isPoliticianSimple, isPolitician
 
-import warnings
-warnings.simplefilter("ignore")
-warnings.filterwarnings("ignore",category=DeprecationWarning)
+#import warnings
+#warnings.simplefilter("ignore")
+#warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 def runSearch(name,surname,midname="",country="") :
 

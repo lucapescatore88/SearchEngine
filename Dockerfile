@@ -19,7 +19,6 @@ RUN pip install seaborn
 RUN pip install wikipedia
 RUN pip install Flask
 RUN pip install babel
-RUN pip install google-search-results
 RUN pip install pyyaml
 RUN pip install forex-python
 RUN pip install unidecode
@@ -48,6 +47,6 @@ COPY startup.sh startup.sh
 COPY cfg.yml cfg.yml
 
 RUN chmod +x startup.sh
-CMD bash -C 'startup.sh';'bash'
+CMD bash -C 'startup.sh test';'bash'
 
 

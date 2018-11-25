@@ -1,7 +1,8 @@
-from engineutils import loadCurrencies, cleanData, country_df
+from engineutils import loadCurrencies, cleanData, country_df, resroot
 from HTMLParser import HTMLParser
 from unidecode import unidecode
 from bs4 import BeautifulSoup
+from datetime import datetime
 import wikipedia, requests
 import pandas as pd
 import re, os
@@ -112,6 +113,10 @@ def findWikiNationality(soup,bio=None,fulltext=None) :
         print "Searching for nationality in full Wiki page"
         return findNationality(fulltext)
 
+    print "Sorry no nationality found"
+    return "NA"
+
+
 ### Find the Date of Birth
 
 def findWikiBirthDay(soup,bio=None) :
@@ -124,12 +129,20 @@ def findWikiBirthDay(soup,bio=None) :
     if bio is not None :
 
         print "Looking for birthday in biography"
-        groups = re.match("(?i)\(.*?born.*?(\d{4}).*?\)",bio)
-        if groups is not None and len(groups)>0 :
-            #print groups
-            return groups[0] 
+        match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
+        
+        months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
+        patts = [ '%s.*?\\d{4}' % mon for mon in months ]
+        patt = '(?i)\\(.*?born.*?('+'|'.join(patts)+').*?\\)'
+        match = re.match(patt,bio)
+        if match is not None : return match.groups()[0] 
 
-    return "No date found... sorry"
+        # Try only year
+        match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
+        if match is not None : return match.groups()[0] 
+
+    print "Sorry no birthday found"
+    return "NA"
 
 
 ### Find how rich they are
@@ -146,7 +159,7 @@ def getNetWorthTag(soup) :
 
 def findWikiNetWorth(soup) :
 
-    money = 0.
+    money = -1
     tr = getNetWorthTag(soup)
 
     if tr is None : return money
@@ -219,30 +232,72 @@ def parseWiki(name,surname,midname="",country="") :
     if(name in mainpage and surname in mainpage) :
         page = wikipedia.page(mainpage)
     else :
-        return "Something is wrong... no Wiki page found"
+        print "Something is wrong... no Wiki page found"
+        return {'name' : name,'surname': surname,'midname': "NA",
+                'bio'  : "NA", 'profession' : "NA",'bday': "NA",
+                'money': "NA",'country': "NA"}
 
     req = requests.get(page.url)
     soup = BeautifulSoup(req.text)
 
-    ### Just a log of the page for testing purposes
-    #f = open("log","w")
-    #f.write(req.text.encode('utf-8'))
-    #f.close()
-
-    ### Remember to add midname to search options
+    ### Do some extra processing
     midname, bio = findWikiBiography(soup,name,surname)
+    if bio is None : bio = "NA"
     profs = findWikiProfession(soup)
-    if profs is not None :
-        profs = ', '.join(profs)
+    if profs is not None : profs = ', '.join(profs)
+    else : profs = "NA"
     
+    bday = findWikiBirthDay(soup,bio)
+    day, month, year = -1, -1, -1
+    if bday != "NA" : 
+        try :
+            dateobj = datetime.strptime(bday,'%Y-%m-%d')
+        except Exception as e:
+            print (e)
+            try :
+                dateobj = datetime.strptime(bday,'%B %d, %Y')
+            except Exception as e: print (e)
+        if dateobj is None :
+            match = re.match(".*?(\\d{4}).*?",bday)
+            if match is not None :
+                year = int(match.groups()[0])
+        else :
+            day, month, year = dateobj.day, dateobj.month, dateobj.year
+
+    ## Prepare output
     out = {
+        'name'       : name, 'surname' : surname, 'midname' : midname,
         'bio'        : bio, 
-        'midname'    : midname,
         'profession' : profs,
-        'bday'       : findWikiBirthDay(soup,bio),
+        'bday'       : bday, 'day' : day, 'month' : month, 'year' : year,
         'money'      : findWikiNetWorth(soup),
         'country'    : findWikiNationality(soup,bio,req.text)
     }
-    return out, cleanData(req.text)
+    return out #, cleanData(req.text)
 
+
+
+if __name__ == '__main__':
+
+    from engineutils import getPeopleData, trainparser
+    import pickle
+    
+    args = trainparser.parse_args()
+
+    wikidata = getPeopleData("WikiData",args.trainfile,
+                        myfunction=parseWiki,
+                        nobackup=args.nobackup)
+
+    entries = []
+    for key,dat in wikidata.iteritems() :
+
+        d = {}
+        d['isPol'] = key[2]
+        d['isFam'] = key[3]
+        d.update(dat)
+        entries.append(d)
+
+    df = pd.DataFrame.from_dict(entries)
+    pickle.dump(df,open(resroot+"WikiDF.pkl","w"))
+    print "Done! The DataFrame is in ", resroot+"WikiDF.pkl"
 

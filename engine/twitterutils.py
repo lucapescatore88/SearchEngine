@@ -1,10 +1,11 @@
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler, Stream
+from engineutils import config, resroot
 from multiprocessing import Process
 from datetime import datetime
-from engineutils import config
 import time, json, os, yaml
 import subprocess as sb
+import pandas as pd
 import tweepy
 
 consumer_key    = "uZEo4lMBcPClUMdPxMFynEAVT"
@@ -15,7 +16,7 @@ auth = OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_secret)
 api = tweepy.API(auth)
 
-shared = { 'file' : None, 'data' : [], 'time' : time.time() }
+shared = { 'file' : None, 'time' : time.time() }
 
 class TwitterListener(StreamListener):
  
@@ -75,15 +76,35 @@ def getTwitterFollowers(name,surname) :
 
 if __name__ == "__main__" :
 
+    #print getTwitterCounts("Donald","Trump")
+    #import sys
+    #sys.exit()
+
+    from engineutils import getPeopleData, trainparser
     from argparse import ArgumentParser
-    parser = ArgumentParser()
-    parser.add_argument("name")
-    parser.add_argument("surname")
-    args = parser.parse_args()
+    import pickle
 
-    print "Calculating number of hits..."
-    print "Found", getTwitterCounts(args.name,args.surname), "hits"
+    args = trainparser.parse_args()
 
-    print "Calculating followers..."
-    print "Found", getTwitterFollowers(args.name,args.surname), "followers"
+    def getTwitterData(name,surname) :
+        return { 'name' : name, 'surname' : surname,
+                 'TweetCounts'  : getTwitterCounts(name,surname), 
+                 'TweetFollows' : getTwitterFollowers(name,surname) }
+
+    tweetdata = getPeopleData("TwitterData",args.trainfile,
+                        myfunction=getTwitterData,
+                        nobackup=args.nobackup)
+
+    entries = []
+    for key,dat in tweetdata :
+
+        d = {}
+        d["isPol"] = key[2]
+        d["isFam"] = key[3]
+        d.update(dat)
+        entries.append(d)
+
+    df = pd.DataFrame.from_dict(entries)
+    pickle.dump(df,open(resroot+"TwitterDF.pkl","w"))
+    print "Done! The DataFrame is in ", resroot+"TwitterDF.pkl"
 

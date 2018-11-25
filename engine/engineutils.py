@@ -1,5 +1,6 @@
 import re, os, sys, yaml
 import pandas as pd
+import pickle
 
 ### Generic paths
 
@@ -16,6 +17,10 @@ except Exception as e:
     print "Config file is not good"
     print(e)
     sys.exit()
+
+import warnings
+warnings.simplefilter("ignore")
+warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 ### Function to load the DB with currency codes and add symbols
 
@@ -144,7 +149,48 @@ def countryCode(text) :
     return -1
 
 
+### Function to run over a list of people and apply a function, supports backup
+def getPeopleData(hname,peoplefile,myfunction=None,nobackup=False) :
 
+    data = pd.read_csv(peoplefile)
 
+    ### To avoid running searches all the time can use backup
+    backupfile = resroot+"/"+hname+"_backup.pkl"
+    backup   = {}
 
+    if os.path.exists(backupfile) and not nobackup:
+        backup = pickle.load(open(backupfile))
+        print "Loaded from saved data"
+        print backup.keys()
+    
+    for ir,row in data.iterrows() :
+        name         = row["name"]
+        surname      = row["surname"]
+        isPolitician = row["politician"]
+        isFamous     = row["famous"]
+
+        try :
+            key = (name,surname,isPolitician,isFamous)
+            if key in backup.keys() :
+                print hname+": Info for", name, surname, "already in store, use --nobackup to avoid using it"
+                curfeatures = backup[key]
+            else :
+                print hname+": Getting info for", name, surname
+                curfeatures = myfunction(name,surname)
+            
+            #print curfeatures
+            backup[key] = curfeatures
+            if len(backup) > 0 : pickle.dump(backup,open(backupfile,"w"))
+            
+        except :
+            continue
+    
+    return backup
+
+from argparse import ArgumentParser
+trainparser = ArgumentParser()
+trainparser.add_argument("--trainfile",default=resroot+"people.csv",
+    help="The name of the csv file with names of politicians and not")
+trainparser.add_argument("--nobackup",action="store_true",
+    help="If present it will try look for a backup file and use it if exists")
 

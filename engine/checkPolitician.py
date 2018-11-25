@@ -1,6 +1,10 @@
 from sklearn.linear_model import LogisticRegression
+from scipy.spatial.distance import cosine
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+
+from sklearn.feature_extraction.text import CountVectorizer
+
 from engineutils import config, resroot
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
@@ -8,9 +12,11 @@ import string, math, os, sys
 import pandas as pd
 import yaml, pickle
 import numpy as np
+import math
 
-modelfile = resroot+"NLP_politician_model.pkl"
-mapfile   = resroot+"NLP_politician_wordmap.pkl"
+modelfile  = resroot+"NLP_politician_model.pkl"
+mapfile    = resroot+"NLP_politician_wordmap.pkl"
+nlpoutfile = resroot+"NLP_simple_out.pkl"
 
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
@@ -55,9 +61,14 @@ def tokensToVector(tokens, word_map, label = None) :
     if label is not None : dim += 1
 
     x = np.zeros(dim)
+    keys = word_map.keys()
     for t in tokens :
-        x[word_map[t]] += 1
-    x = x / x.sum()             ## Normalise to get word frequency
+        if t in keys : 
+            x[word_map[t]] += 1
+
+    ## Normalise to get word frequency
+    norm = x.sum()
+    if norm > 0 : x = x / float(norm)
 
     if label is not None : x[-1] = label
     return x
@@ -79,6 +90,7 @@ def makeDataSet(people,word_map={}) :
 ### Function to train a NLP model for classifying politicians 
 def trainNLPModel(politicians,normals) :
 
+    print "Tockenising and vectorising"
     word_map, pol_toks = makeDataSet(politicians,word_map_simple)
     word_map, norm_toks = makeDataSet(normals,word_map)
     
@@ -104,13 +116,14 @@ def trainNLPModel(politicians,normals) :
     features_test  = features[ntest:,]
     labels_test  = labels[ntest:,]
 
+    print "Fitting Logistic Regression model"
     model = LogisticRegression()
     model.fit(features_train,labels_train)
 
+    ## Save model for future use
     pickle.dump(model,open(modelfile,"w"))
     pickle.dump(word_map,open(mapfile,"w"))
     print "Classification rate", model.score(features_test,labels_test)
-    #model.score(features_train,labels_train)
 
     return model
 
@@ -140,29 +153,31 @@ def cosvec(v1,v2) :
     
     if len(v1) != len(v2) :
         return "len(v1) = "+str(len(v1))+" len(v2) = "+str(len(v2))+" They must be equal!"
-        return 0
+        return 0.
 
-    xy, xx, yy = 0, 0, 0
+    xy, xx, yy = 0., 0., 0.
     for i in range(len(v1)) :
         xx += v1[i]*v1[i]
         yy += v2[i]*v2[i]
         xy += v1[i]*v2[i]
-        
-    if xx == 0 or yy == 0 :
-        print "One of the two vectors is empty!!"
-        return 0
+    
+    if math.sqrt(xx)*math.sqrt(yy) < 1e-6 :
+        #print "One of the two vectors is empty!!"
+        return 0.
 
     return float(xy) / (math.sqrt(xx)*math.sqrt(yy))
 
 
-### Get the simplified map for these few political words to test
-def getTestMap() :
 
-    politics_words = ["politics","election","decision","minister","senator","president",
+### Get the simplified map for these few political words to test
+
+politics_words = ["politics","election","decision","minister","senator","president",
                         "parliament","congress","vote","nation","party","leader","idea",
                         "democratic","war","welfare","internaitonal","constitution",
                         "institution","state","head","military","governament",
-                        "tyranny","federal","global","corruption","power"]
+                        "tyranny","federal","global","corruption","power","referendum"]
+
+def getTestMap() :
 
     lemms             = prepareNLPData(' '.join(politics_words))
     word_map_simple   = getWordMap(lemms)
@@ -178,10 +193,12 @@ lemms_simple, word_map_simple = getTestMap()
 ### Returns average score on a list of texts
 def scoreSimpleNLP(people) :
 
-    word_map, alltoks = makeDataSet(people,word_map_simple)
-    testvector = tokensToVector(lemms_simple, word_map, label = None) 
-    
-    vecs   = [ tokensToVector(toks, word_map, label = None) for toks in alltoks ]
+    #word_map, alltoks = makeDataSet(people,word_map_simple)
+    #testvector = tokensToVector(lemms_simple, word_map, label = None) 
+    word_map, alltoks = makeDataSet(people)
+    testvector = tokensToVector(lemms_simple, word_map_simple, label = None) 
+
+    vecs   = [ tokensToVector(toks, word_map_simple, label = None) for toks in alltoks ]
     scores = [ cosvec(testvector,vec) for vec in vecs ]
 
     return np.mean(scores)
@@ -190,84 +207,78 @@ def scoreSimpleNLP(people) :
 ### Returns true if the score of the simple model passes a threshold
 ### N.B.: Threshold was pretrained and can be changed in cfg.yml
 def isPoliticianSimple(person) :
-    return int( scoreSimpleNLP([person]) > config['simple_nlp_thr'])
+    return scoreSimpleNLP([person]) > config['simple_nlp_thr']
 
 
 ### Function to train the simplified model
 def trainSimpleNLPModel(politicians,normals) :
 
-    word_map, pol_toks = makeDataSet(politicians,word_map_simple)
-    word_map, norm_toks = makeDataSet(normals,word_map)
-    
-    testvector = tokensToVector(lemms_simple, word_map, label = None) 
-    pol_vecs   = [ tokensToVector(toks, word_map, label = None) for toks in pol_toks ]
-    norm_vecs  = [ tokensToVector(toks, word_map, label = None) for toks in norm_toks ]
+    #print "Vectorising"
+    #vectorizer = CountVectorizer()
+    #texts = [' '.join(politics_words)]
+    #texts.extend(politicians)
+    #texts.extend(normals)
+    #vectorizer.fit(texts)
+    #print "Vectorised"
+    #testvec  = vectorizer.transform([' '.join(politics_words)])
+    #print testvec[0]
+    #print testvec[0][:30]
+    #pol_vecs = vectorizer.transform(politicians)
+    #norm_vecs = vectorizer.transform(normals)
 
-    pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs ]
-    norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs ]
-        
+    word_map, pol_toks = makeDataSet(politicians)
+    word_map, norm_toks = makeDataSet(normals)
+    
+    testvector = tokensToVector(lemms_simple, word_map_simple, label = None)
+    pol_vecs   = [ tokensToVector(toks, word_map_simple, label = None) for toks in pol_toks ]    
+    norm_vecs  = [ tokensToVector(toks, word_map_simple, label = None) for toks in norm_toks ]
+
+    ntestpol  = int(-0.2 * len(pol_vecs))
+    ntestnorm = int(-0.2 * len(norm_vecs))
+    pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[:ntestpol] ]
+    norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[:ntestnorm] ]
+
     ## The treshold will be the middle point between the two averages
     thr = (np.mean(pol_scores) + np.mean(norm_scores))/2.
     print "Mean Politics = ", np.mean(pol_scores)
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
+
+    outdata = [ {'isPol':1, 'simpleNLPScore':score} for score in pol_scores ]
+    outdata.extend([ {'isPol':0, 'simpleNLPScore':score} for score in norm_scores])
+    df = pd.DataFrame(outdata)
+    pickle.dump(df,open(nlpoutfile,"w"))
+
+
+    if thr is not None :
+        pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
+        norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[ntestnorm:] ]
+        print "Pos politics ", sum([1 for x in pol_scores if x > thr ]) / float(len(pol_scores))
+        print "Pos normals ", sum([1 for x in norm_scores if x < thr ]) / float(len(norm_scores))
+        print "Neg politics ", sum([1 for x in pol_scores if x < thr ]) / float(len(pol_scores))
+        print "Neg normals ", sum([1 for x in norm_scores if x > thr ]) / float(len(norm_scores))
+
     return thr
 
 
 
 if __name__ == "__main__" :
 
-    import warnings
-    warnings.simplefilter("ignore")
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    print "This scripts assumes you ran python engine/googleutils.py before"
+    print "It will use data from ", resroot+"GoogleDF.pkl"
+    if not os.path.exists(resroot+"GoogleDF.pkl") :
+        print "Please run 'python engine/googleutils.py' to get data for training"
+        sys.exit()
 
     from googleutils import parseGoogle
-    from argparse import ArgumentParser
-
-    parser = ArgumentParser()
-    parser.add_argument("--trainfile",default=resroot+"people.csv",
-        help="The name of the csv file with names of politicians and not")
-    parser.add_argument("--data",default=None,
-        help="Pickle file where data is saved")
-    args = parser.parse_args()
-
-    data = pd.read_csv(args.trainfile)
-    politicians = []
-    normals     = []
+    import pickle
+    data = pickle.load(open(resroot+"GoogleDF.pkl"))
     
-    backup = {}
+    politicians = data.loc[data['isPol']==1,'googletext'].tolist()
+    normals     = data.loc[data['isPol']==0,'googletext'].tolist()
 
-    ### To avoid running searches all the time can use backup
-    if args.data is not None and os.path.exists(args.data) :
-        backup = pickle.load(open(args.data))
-        print "Loaded from saved data"
-        print backup.keys()
-    
-    for ir,row in data.iterrows() :
-        name         = row["name"]
-        surname      = row["surname"]
-        isPolitician = row["politician"]
-
-        ### Get data, from the net or from backup
-        try :
-
-            print "Getting google text for", name, surname
-            if (name,surname) in backup :
-                out = backup[(name,surname)]
-            else :
-                out = parseGoogle(name,surname)
-        
-            if out != "" : backup[(name,surname)] = out
-            else : continue
-
-            if len(backup) > 0 : pickle.dump(backup,open("backup_politician.pkl","w"))
-            if isPolitician == 1 : politicians.append(out)
-            else : normals.append(out)
-
-        except :
-            continue
-
+    print "Training Simple model"
     trainSimpleNLPModel(politicians,normals)
+    print "Training Logistic model"
     trainNLPModel(politicians,normals)
-
 

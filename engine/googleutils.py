@@ -1,5 +1,6 @@
+from engineutils import cleanData, config, resroot
 import urllib, urllib2, re, requests, sys, json
-from engineutils import cleanData, config
+import pandas as pd
 
 def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links']) :
 
@@ -45,11 +46,39 @@ def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links'
             fulldata += data+"\n" 
         except : 
             pass
-            #print "Skipping, something is wrong"
     
     print "Analysed", nok, "links"
     return cleanData(fulldata)
 
+
+if __name__ == "__main__" :
+
+    from engineutils import getPeopleData, trainparser
+    import pickle
+    
+    args = trainparser.parse_args()
+
+    def dummyParseGoogle(name,surname) :
+        return {'name' : name, 'surname' : surname,
+                'googletext' : parseGoogle(name,surname) }
+
+    googledata = getPeopleData("GoogleData",args.trainfile,
+                        myfunction=dummyParseGoogle,
+                        nobackup=args.nobackup)
+
+    entries = []
+    for key,dat in googledata.iteritems() :
+
+        d = {}
+        d['isPol'] = key[2]
+        d['isFam'] = key[3]
+        d.update(dat)
+        #print dat['name'], dat['surname'], len(dat['googletext'])
+        entries.append(d)
+
+    df = pd.DataFrame.from_dict(entries)
+    pickle.dump(df,open(resroot+"GoogleDF.pkl","w"))
+    print "Done! The DataFrame is in ", resroot+"GoogleDF.pkl"
 
 
 
