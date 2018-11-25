@@ -6,9 +6,11 @@ In order to use this repository you need many libraries.
 
 You can install them in your local environment using
 
-```pip install RUN pip install pandas sklearn 'matplotlib==1.4.3' seaborn \
+```
+pip install RUN pip install pandas sklearn 'matplotlib==1.4.3' seaborn \
        wikipedia Flask babel pyyaml forex-python unidecode tweepy xgboost nltk
-RUN python -c 'import nltk; nltk.download("all")'```
+RUN python -c 'import nltk; nltk.download("all")'
+```
 
 Then run ```source startup.sh``` to set the environment.
 
