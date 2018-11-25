@@ -1,5 +1,10 @@
 ### Data Science position at Pictet: Search Engine
 
+Assignment for Data Scientist position at Pictet. A search engine that will tell you if somebody is rich and famous or poor and miserable.
+
+A presentation about how all this work is under development [at this link](https://cernbox.cern.ch/index.php/s/1gHOr0MYm3FGNFL).
+
+
 ## Installation 
 
 In order to use this repository you need many libraries.
