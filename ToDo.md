@@ -2,12 +2,11 @@
 
 Main :
 
-- Make plots for trainings (!)
-- Train models for famous (!)
-- Wiki for non famous?
+- Re-train models for famous with improved data(!)
+- LinkedIn support for non famous?
 
 Improvements :
-- Job seach text?
+- Job search in text?
 - Use word2vec, TF/IDF
 
 Bug fixes :
