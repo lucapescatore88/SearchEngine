@@ -161,7 +161,7 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     ## Convert country into One Hot Encoding
     #print "Encoding"
     encoded = oneHotCountryCode(df['country'])
-    #df = pd.concat([df, encoded], axis=1)
+    df = pd.concat([df, encoded], axis=1)
     #df.drop('country')
 
     return df

@@ -56,15 +56,18 @@ the app actually works in the background! This is just to tell you that dependin
 
 - ```engine``` : Contains main pathon scripts to run the engines
     * runsearch.py -> Main script to launch search
+    * engineutils.py -> Conteins generic utilities e.g. clean html pages and load countries DB
     * googleutils.py -> Functions to get data drom Google
     * wikiutils.py -> Functions to get data drom Wikipedia
     * twitterutils.py -> Functions to get data drom Twitter
     * checkPolitician.py -> Function to train and score a isPolitician classifier
     * checkFamous.py -> Function to train and score a isFamous classifier
 
-- ```flaskr``` : Contains the python scripts and html files to run the web interface
+- ```flaskr``` : Contains the python scripts and html files to run the web interface.
 
-- ```resources``` : Contains data sources, csv files, pickle files with trained models
+- ```resources``` : Contains data sources, csv files, pickle files with trained models.
+
+- ```scripts``` : Standalone scripts that used to make some plots.
 
 
  
