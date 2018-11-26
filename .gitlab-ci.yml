@@ -1,10 +1,14 @@
 stages:
   - test
 
-before_script:
-  - pip install seaborn
+#before_script:
+#  - {some setup?}
 
-script:
-  - echo 'Test Done'
+test :
+#  image: pictet-image
+  script:
+    - source startup.sh test > testout.txt
 
 artifacts:
+  paths :
+    - testout.txt
