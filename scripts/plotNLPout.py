@@ -15,17 +15,17 @@ dataNoPol = data.loc[data['isPol']==0,'simpleNLPScore']
 sb.distplot(dataPol,kde=False)
 sb.distplot(dataNoPol,kde=False)
 plt.legend(['Politicians (mean = %.2f)' % dataPol.mean(),'Normals (mean = %.2f)' % dataNoPol.mean()], ncol=2, loc='best');
-plt.savefig("NLPout_seaborn.pdf")
+plt.savefig(plots+"NLPout_seaborn.pdf")
 plt.clf()
 
 plt.hist(data.loc[data['isPol']==1,'simpleNLPScore'], normed=True, alpha=0.5)
 plt.hist(data.loc[data['isPol']==0,'simpleNLPScore'], normed=True, alpha=0.5)
-plt.savefig("NLPout.pdf")
+plt.savefig(plots+"NLPout.pdf")
 plt.clf()
 
 eff = []
 rej = []
-cuts = np.linspace(0.,0.6,30)
+cuts = np.linspace(data[['simpleNLPScore']].min(),data[['simpleNLPScore']].max(),30)
 totPol = float(len( dataPol.values ))
 totNoPol = float(len( dataNoPol.values ))
 mindist = 100
@@ -44,7 +44,7 @@ print "The best cut is:", bestcut, "with efficiency", besteff
 plt.plot(eff,rej)
 plt.xlabel('Efficiency')
 plt.ylabel('Rejection')
-plt.savefig("NLP_ROC.pdf")
+plt.savefig(plots+"NLP_ROC.pdf")
 plt.clf()
 
 

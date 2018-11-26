@@ -2,3 +2,4 @@ simple_nlp_thr : 0.02
 nlp_thr : 0.5
 tweet_time : 5
 n_google_links : 10
+usespark : true

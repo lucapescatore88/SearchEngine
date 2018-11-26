@@ -2,20 +2,16 @@
 
 Main :
 - LinkedIn support?
-
-Analysis and presentation
-- Add correlation plots
-- Add cross validation info
-- Make 
-- Add time of the day and polulation weights
-
-Improvements :
-- Use spark for vectorising
+- Introduce hasWikipedia
 - Optimise isFamous cut
 - Money search somewhere else?
 - Job search in text?
+
+Improvements :
 - Use word2vec, TF/IDF?
+- Add time of the day and polulation weights
 
 Bug fixes :
 - Fix Docker port problem
 - Fix DeprecationWarning
+- Fix isPol wrong feature in training!

@@ -306,6 +306,7 @@ if __name__ == '__main__':
         entries.append(d)
 
     df = pd.DataFrame.from_dict(entries)
-    pickle.dump(df,open(resroot+"WikiDF.pkl","w"))
+    with open(resroot+"WikiDF.pkl","w") as of :
+        pickle.dump(df,of)
     print "Done! The DataFrame is in ", resroot+"WikiDF.pkl"
 

@@ -175,8 +175,6 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
 
     with open(resroot+"NameFeatures.pkl") as of:
         df = df[pickle.load(of)]
-    #print df.head()
-    print df.columns
 
     return df
 
@@ -200,7 +198,7 @@ if __name__ == "__main__" :
     mydata['money'] = mydata['money'].apply( lambda x : -1 if isinstance(x,str) else x )
     pickle.dump(mydata,open(fulldffile,"w"))
     
-    features = mydata[['isPol','TweetCounts','TweetFollow','country','money']]
+    features = mydata[['scorePol','TweetCounts','TweetFollow','country','money']]
     oh_encoded = country_ohe.encodeOneHot(features,'country')
     features = pd.concat([features, oh_encoded], axis=1)
     features.drop(columns=['country'])

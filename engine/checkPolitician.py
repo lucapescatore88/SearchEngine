@@ -3,7 +3,6 @@ from sklearn.linear_model import LogisticRegression
 from scipy.spatial.distance import cosine
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-#from sklearn.feature_extraction.text import CountVectorizer
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
 import string, math, os, sys
@@ -11,6 +10,10 @@ import pandas as pd
 import yaml, pickle
 import numpy as np
 import math
+
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
+spark.sparkContext.setLogLevel('ERROR')
 
 modelfile  = resroot+"NLP_politician_model.pkl"
 mapfile    = resroot+"NLP_politician_wordmap.pkl"
@@ -31,14 +34,39 @@ def prepareNLPData(data) :
     filtered_words = [w for w in filtered_words if w not in punct]
 
     ## Lemmatise words to limit phasespace: e.g dogs --> dog, doing --> do 
-    wordnet_lemmatizer = WordNetLemmatizer()
-    lemmatised = [wordnet_lemmatizer.lemmatize(t) for t in filtered_words]
+    lemmatizer = WordNetLemmatizer()
+    lemmatised = [lemmatizer.lemmatize(w) for w in filtered_words]
 
     return lemmatised
 
 
+def makeDataSetSpark(people,word_map={}) :
+
+    punct = list(string.punctuation)    ## Punctuation to remove
+    stopw = stopwords.words('english')  ## Stopwords to remove
+    lemmatizer = WordNetLemmatizer()
+
+    spark.sparkContext.broadcast(punct)
+    spark.sparkContext.broadcast(stopw)
+    spark.sparkContext.broadcast(lemmatizer)
+
+    # Load up our data and convert it to the format MLLib expects.
+    toks = []
+    for person in people :
+        inputs     = spark.sparkContext.parallelize([person])
+        words      = inputs.flatMap(lambda x: word_tokenize(x) )
+        lowords    = words.map(lambda w: w.lower())
+        nostop     = lowords.filter(lambda w : w not in stopw and w not in punct)
+        lemmatised = nostop.map(lambda w: lemmatizer.lemmatize(w))
+
+        toks.append(lemmatised.collect())
+        fillWordMap(toks[-1],word_map)
+    
+    return word_map, toks
+
+
 ### Creates a dictionary mapping words to indices
-def getWordMap(toks,word_map = {}) :
+def fillWordMap(toks,word_map = {}) :
 
     ### In case we need to add to a previous dictionary
     cur_index = len(word_map)
@@ -59,9 +87,8 @@ def tokensToVector(tokens, word_map, label = None) :
     if label is not None : dim += 1
 
     x = np.zeros(dim)
-    keys = word_map.keys()
     for t in tokens :
-        if t in keys : 
+        if t in word_map.keys() : 
             x[word_map[t]] += 1
 
     ## Normalise to get word frequency
@@ -79,7 +106,7 @@ def makeDataSet(people,word_map={}) :
     toks = []
     for pol in people :
         lemms = prepareNLPData(pol)
-        word_map = getWordMap(lemms,word_map)
+        word_map = fillWordMap(lemms,word_map)
         toks.append(lemms)
     
     return word_map, toks
@@ -88,10 +115,15 @@ def makeDataSet(people,word_map={}) :
 ### Function to train a NLP model for classifying politicians 
 def trainNLPModel(politicians,normals) :
 
-    print "Tockenising and vectorising"
-    word_map, pol_toks = makeDataSet(politicians,word_map_simple)
-    word_map, norm_toks = makeDataSet(normals,word_map)
-    
+    poltexts = politicians.loc[:,'googletext'].tolist()
+    normtexts = politicians.loc[:,'googletext'].tolist()
+    if config['usespark'] :
+        word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
+        word_map, norm_toks = makeDataSetSpark(normtexts,word_map)
+    else :
+        word_map, pol_toks = makeDataSet(poltexts,word_map_simple)
+        word_map, norm_toks = makeDataSet(normtexts,word_map)
+
     N = len(pol_toks) + len(norm_toks)
     data = np.zeros((N,len(word_map)+1))
     i = 0
@@ -136,20 +168,23 @@ def trainNLPModel(politicians,normals) :
 ### N.B.: Threshold can be changed in cfg.yml
 def isPolitician(person) :
 
-    word_map, alltoks = makeDataSet([person],trained_word_map)
-    data = np.zeros((len(toks),len(word_map)))
-    i = 0
-    for toks in alltoks :
-        data[i,:] = tokensToVector(toks, word_map, label = None)
-        i +=1
+    if config['usespark'] :
+        word_map, alltoks = makeDataSetSpark([person],trained_word_map)
+    else :
+        word_map, alltoks = makeDataSet([person],trained_word_map)
     
-    #Code to check the weight given to each word
-    #for w,i in word_map.iteritems() :
-    #    weight = model.coef_[0][i]
-    #    if(abs(weight)>thr) :
-    #        print word, weight
+    data = np.zeros((1,len(word_map)))
+    data[0,:] = tokensToVector(toks, word_map)
+    
     predict_df = trained_model.predict(data)
-    return int(predict_df.values[0] > config['nlp_thr'])
+    return predict_df.values[0] > config['nlp_thr']
+
+
+#Function to check the weight given to each word
+def checkWeights():
+
+    for w,i in word_map.iteritems() :
+        print w, model.coef_[0][i]
 
 
 ### Calculates cosigne between to vectors as a similarity measure (could use np.dot)
@@ -181,59 +216,39 @@ politics_words = ["politics","election","decision","minister","senator","preside
                         "institution","state","head","military","governament",
                         "tyranny","federal","global","corruption","power","referendum"]
 
-def getTestMap() :
-
-    lemms             = prepareNLPData(' '.join(politics_words))
-    word_map_simple   = getWordMap(lemms)
-    #print lemms
-    #print word_map_simple
-
-    return lemms, word_map_simple
-
-### Make the test objects globally available
-lemms_simple, word_map_simple = getTestMap()
-
-
-### Returns average score on a list of texts
-def scoreSimpleNLP(people) :
-
-    word_map, alltoks = makeDataSet(people)
-    testvector = tokensToVector(lemms_simple, word_map_simple, label = None) 
-
-    vecs   = [ tokensToVector(toks, word_map_simple, label = None) for toks in alltoks ]
-    scores = [ cosvec(testvector,vec) for vec in vecs ]
-
-    return np.mean(scores)
-
+lemms_simple      = prepareNLPData(' '.join(politics_words))
+word_map_simple   = fillWordMap(lemms)
+testvector        = tokensToVector(lemms_simple, word_map_simple)
 
 ### Returns true if the score of the simple model passes a threshold
 ### N.B.: Threshold was pretrained and can be changed in cfg.yml
 def isPoliticianSimple(person) :
-    return scoreSimpleNLP([person]) > config['simple_nlp_thr']
+
+    if config['usespark'] :
+        word_map, alltoks = makeDataSetSpark([person],word_map_simple)
+    else :
+        word_map, alltoks = makeDataSet([person],word_map_simple)
+    
+    vec        = tokensToVector(alltoks[0], word_map_simple)
+    score      = cosvec(testvector,vec)
+
+    return score > config['simple_nlp_thr']
 
 
 ### Function to train the simplified model
 def trainSimpleNLPModel(politicians,normals) :
 
-    #### Try do it with CounterVectorizer
-    #vectorizer = CountVectorizer()
-    #texts = [' '.join(politics_words)]
-    #texts.extend(politicians)
-    #texts.extend(normals)
-    #vectorizer.fit(texts)
-    #print "Vectorised"
-    #testvec  = vectorizer.transform([' '.join(politics_words)])
-    #print testvec[0]
-    #print testvec[0][:30]
-    #pol_vecs = vectorizer.transform(politicians)
-    #norm_vecs = vectorizer.transform(normals)
+    poltexts = politicians.loc[:,'googletext'].tolist()
+    normtexts = politicians.loc[:,'googletext'].tolist()
+    if config['usespark'] :
+        word_map, pol_toks = makeDataSetSpark(poltexts)
+        word_map, norm_toks = makeDataSetSpark(normtexts)
+    else :
+        word_map, pol_toks = makeDataSet(poltexts)
+        word_map, norm_toks = makeDataSet(normtexts)
 
-    word_map, pol_toks = makeDataSet(politicians)
-    word_map, norm_toks = makeDataSet(normals)
-    
-    testvector = tokensToVector(lemms_simple, word_map_simple, label = None)
-    pol_vecs   = [ tokensToVector(toks, word_map_simple, label = None) for toks in pol_toks ]    
-    norm_vecs  = [ tokensToVector(toks, word_map_simple, label = None) for toks in norm_toks ]
+    pol_vecs   = [ tokensToVector(toks, word_map_simple) for toks in pol_toks ]    
+    norm_vecs  = [ tokensToVector(toks, word_map_simple) for toks in norm_toks ]
 
     ntestpol  = int(-0.2 * len(pol_vecs))
     ntestnorm = int(-0.2 * len(norm_vecs))
@@ -246,10 +261,10 @@ def trainSimpleNLPModel(politicians,normals) :
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
 
-    outdata = [ {'isPol':1, 'simpleNLPScore':score} for score in pol_scores ]
-    outdata.extend([ {'isPol':0, 'simpleNLPScore':score} for score in norm_scores])
-    df = pd.DataFrame(outdata)
-    pickle.dump(df,open(nlpoutfile,"w"))
+    politicians['scorePolSimple'] = pd.Series(pol_scores, index=politicians.index)
+    normals['scorePolSimple'] = pd.Series(pol_scores, index=normals.index)
+    with open(nlpoutfile,"w") as of :
+        pickle.dump(pd.concat(politicians,normals),of)
 
     if thr is not None :
         pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
@@ -274,8 +289,8 @@ if __name__ == "__main__" :
     import pickle
     data = pickle.load(open(resroot+"GoogleDF.pkl"))
     
-    politicians = data.loc[data['isPol']==1,'googletext'].tolist()
-    normals     = data.loc[data['isPol']==0,'googletext'].tolist()
+    politicians = data.loc[data['isPol']==1]
+    normals     = data.loc[data['isPol']==0]
 
     print "Training Simple model"
     trainSimpleNLPModel(politicians,normals)
