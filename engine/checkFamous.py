@@ -1,23 +1,21 @@
+from engineutils import country_df, countryCode, resroot, getPeopleData, saveDataWithPrediction
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
-from twitterutils import getTwitterCounts, getTwitterFollowers
-from engineutils import country_df, countryCode, resroot
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import LabelEncoder
-from googleutils import parseGoogle
 from xgboost import XGBClassifier
-from wikiutils import parseWiki
 import matplotlib.pyplot as plt
+import os, re, pickle
 import seaborn as sb
 import pandas as pd
 import numpy as np
-import os, re
 
-modelXGfile     = resroot+"XG_famous_model.pkl"
-modelVotingfile = resroot+"voting_famous_model.pkl"
+modelXGfile         = resroot+"XG_famous_model.pkl"
+modelVotingfile     = resroot+"voting_famous_model.pkl"
+fulldffile          = resroot+"FullDF.pkl"
+trained_XGmodel     = pickle.load(open(modelXGfile))
+trained_Votingmodel = pickle.load(open(modelVotingfile))
 
-#trained_XGmodel     = pickle.load(open(modelXGfile))
-#trained_Votingmodel = pickle.load(open(modelVotingfile))
 
 ### Trains a XGboost model to classify famous
 def trainFamousModel(features,labels) :
@@ -25,20 +23,26 @@ def trainFamousModel(features,labels) :
     ### Do some hyper-parameter scanning to oprimise the performance
     param_cands_XG = [
         { 'learning_rate': [0.2,0.5,1.0,1.2,1.5], 'gamma': [0.,0.3,0.4,0.5,1.0], 'max_depth': [2,3,4,5,6,7,8] }
-        #{ 'learning_rate': [0.5], 'gamma': [.0], 'max_depth': [4] }
         ]
 
     modelXG = GridSearchCV(estimator=XGBClassifier(), param_grid=param_cands_XG,cv=5)
 
     ## Just test with no gridsearch
     #modelXG = XGBClassifier(learning_rate=0.2,gamma=0.4,max_depth=4)
-    #modelXG.fit(features,labels)
+    
+    modelXG.fit(features,labels)
 
     bestmodel = modelXG.best_estimator_
     scores    = cross_val_score(bestmodel, features, labels, cv=5, scoring='accuracy')
 
-    pickle.dump(model,open(modelXGfile,"w"))
-    print "XGBoost model score : ", np.mean(scores)
+    print "Best parameters: "
+    print modelXG.best_params_
+    print "XGBoost score      : %.2f" % (np.mean(scores)*100)
+
+    with open(modelXGfile,"w") as of :
+        pickle.dump(modelXG.best_estimator_,of)
+    saveDataWithPrediction("XGScored",features,modelXG.best_estimator_,"isFamous")
+
     return bestmodel
 
 
@@ -62,18 +66,21 @@ def trainFamousVotingModel(features,labels) :
     scoresXG  = cross_val_score(modelXG,  features, labels, cv=10, scoring='accuracy')
     scoresRF  = cross_val_score(modelRF,  features, labels, cv=10, scoring='accuracy')
 
-    print "AdaBoost score: ", np.mean(scoresAda)
-    print "XGBoost score: ", np.mean(scoresXG)
-    print "Random forest score: ", np.mean(scoresRF)
+    print "AdaBoost score     : %.2f" % (np.mean(scoresAda)*100)
+    print "XGBoost score      : %.2f" % (np.mean(scoresXG)*100)
+    print "Random forest score: %.2f" % (np.mean(scoresRF)*100)
 
-    series = [('Ada',modelAda),('XG',scoresXG),('RF',scoresRF)]
-    model  = VotingClassifier(estimators=series, voting='soft', n_jobs=4)
+    clfs = [('Ada',modelAda),('XG',modelXG),('RF',modelRF)]
+    model  = VotingClassifier(estimators=clfs, voting='soft', n_jobs=4)
+    model.fit(features,labels)
     ### "soft" option weights the vote for the accuracy of each
     
-    scores    = cross_val_score(model, features, labels, cv=5, scoring='accuracy')
+    scores = cross_val_score(model, features, labels, cv=5, scoring='accuracy')
 
-    pickle.dump(model,open(modelVotingfile,"w"))
-    print "Voting model score : ", np.mean(scores)
+    with open(modelVotingfile,"w") as of :
+        pickle.dump(modelXG,of)
+    saveDataWithPrediction("votingScored",features,model,"isFamous")
+    print "Voting model score : %.2f" % (np.mean(scores)*100)
     return model
 
 
@@ -94,29 +101,36 @@ def getClfsCorr(clfs,test) :
 
 def isFamous(features) :
 
-    #return int(trained_XGmodel(features) > 0.5)
-    return True
+    return trained_XGmodel(features) > 0.5
 
 def isFamousVoting(features) :
 
-    #return int(trained_Votingmodel(features) > 0.5)
-    return True
-
+    return trained_Votingmodel(features) > 0.5
 
 ## Define One Hot Encoder for countries
-country_ohe = OneHotEncoder(handle_unknown='ignore')
-country_le = LabelEncoder()
+## Hadles both int and string labelled categories 
+class CountryOneHotEncoder :
 
-unknown = pd.DataFrame(dict({'Code':-1}),index=[0])
-country_df['Code'] = country_df['Code'].append(unknown,ignore_index=True)
-country_lab_encoded = country_le.fit_transform(country_df['Code'])
-country_ohe.fit(country_lab_encoded.reshape(len(country_lab_encoded), 1))
+    def __init__(self,df,colname) :
 
-def oneHotCountryCode(code) :
+        self.colname = colname
+        self.ohe = OneHotEncoder(sparse=False,handle_unknown='ignore')
+        self.le  = LabelEncoder()
 
-    codedf = pd.DataFrame(dict({'Code':code}), index=[0])
-    label_encoded = country_le.transform(codedf)
-    return country_ohe.transform(label_encoded.reshape(len(label_encoded), 1))
+        lab_encoded = self.le.fit_transform(df[colname])
+        self.ohe.fit(lab_encoded.reshape(len(lab_encoded), 1))
+
+        self.colnames = [colname+"_"+str(cl) for cl in self.le.classes_]
+
+    def encodeOneHot(self,somedf,somecolname=None) :
+
+        if colname is None : colname = self.colname
+        lab_encoded = self.le.transform(somedf[colname])
+        oh_encoded  = self.ohe.transform(lab_encoded.reshape(len(lab_encoded), 1))
+
+        return pd.DataFrame(oh_encoded, columns=colnames)
+
+country_ohe = CountryOneHotEncoder(country_df,'Code')
 
 
 ### Parameters are already available quantities, so they won't be recalculated
@@ -127,11 +141,10 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
 
     fdict = {
         'isPolitician'  : isPolitician,
-        'twitterCounts' : getTwitterCounts(name,surname),
+        'TweetCounts'   : getTwitterCounts(name,surname),
+        'TweetFollows'  : getTwitterFollowers(name,surname),
         'country'       : country,
-        #'job'           : None,
-        'money'         : money,
-        "nTwitFollowers": getTwitterFollowers(name,surname)
+        'money'         : money
     }
 
     ### Take care of doing necessary conversions
@@ -141,16 +154,13 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     ### Recalculate quantities if they are missing
     if fdict['isPolitician'] is None :
         googleout = parseGoogle(name,surname)
-        fdict['isPolitician'] = isPoliticianSimple(googleout+fulltext)
+        fdict['isPolitician'] = isPoliticianSimple(googleout)
     
     if fdict['country'] is None or fdict['money'] is None :
 
         info, fulltext = parseWiki(name,surname)
         if country is None :
             fdict['country'] = countryCode(info['country'])
-        #if job is None :
-        #    firstjob = info['profession'].split(",")[0]
-        #   fdict['job'] = firstjob
         if money is None :
             fdict['money'] = info["money"]
 
@@ -159,72 +169,44 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     df = pd.DataFrame(fdict,index=[0])
 
     ## Convert country into One Hot Encoding
-    #print "Encoding"
-    encoded = oneHotCountryCode(df['country'])
-    df = pd.concat([df, encoded], axis=1)
-    #df.drop('country')
+    oh_encoded = country_ohe.encodeOneHot(df,'country')
+    df = pd.concat([df, oh_encoded], axis=1)
+    df.head()
+    df.drop('country')
 
     return df
 
 
 if __name__ == "__main__" :
 
-    import warnings
-    warnings.simplefilter("ignore")
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    print "It will use data from ", resroot+"WikiDF.pkl"
+    if not os.path.exists(resroot+"WikiDF.pkl") :
+        print "Please run 'python engine/wikiutils.py' to get data for training"
+        sys.exit()
+    if not os.path.exists(resroot+"TwitterDF.pkl") :
+        print "Please run 'python engine/wikiutils.py' to get data for training"
+        sys.exit()
 
-    from googleutils import parseGoogle
-    from argparse import ArgumentParser
     import pickle
 
-    parser = ArgumentParser()
-    parser.add_argument("--trainfile",default=resroot+"people.csv",
-        help="The name of the csv file with names of politicians and not")
-    parser.add_argument("--data",default=None,
-        help="Pickle file where data is saved")
-    args = parser.parse_args()
+    wikidata  = pickle.load(open(resroot+"WikiDF.pkl"))
+    tweetdata = pickle.load(open(resroot+"TwitterDF.pkl"))
 
-    data = pd.read_csv(args.trainfile)
-    features  = pd.DataFrame(columns=columns)
-    labels    = pd.DataFrame(columns=['Famous'])
+    common = ['name','surname','isPol','isFam']
+    mydata = pd.merge(wikidata, tweetdata, left_on=common, right_on=common, how='inner')
+    mydata['country'] = mydata['country'].apply(lambda x : countryCode(x))
+    mydata['money'] = mydata['money'].apply( lambda x : -1 if isinstance(x,str) else x )
+    pickle.dump(mydata,open(fulldffile,"w"))
+    #print mydata.columns
     
-    backup = {}
-
-    ### To avoid running searches all the time can use backup
-    if args.data is not None and os.path.exists(args.data) :
-        backup = pickle.load(open(args.data))
-        print "Loaded from saved data"
-        print backup.keys()
-    
-    for ir,row in data.iterrows() :
-        name         = row["name"]
-        surname      = row["surname"]
-        isPolitician = row["politician"]
-        isFamous     = row["famous"]
-
-        try :
-            print "Getting info for", name, surname
-            key = (name,surname,isPolitician,isFamous)
-            if key in backup.keys() :
-                curfeatures = backup[key]
-            else :
-                curfeatures = getFamousFeatures(name,surname)
-            
-            features.append(curfeatures, ignore_index=True)
-            labels.append(pd.DataFrame(dict({"Famous":int(isFamous)}), index=[0]), ignore_index=True)
-
-            print "Done! Saving info"
-            backup[key] = curfeatures
-            if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
-        
-        except :
-            continue
-    
-    #if len(backup) > 0 : pickle.dump(backup,open("backup_famous.pkl","w"))
-    #print features.head()
-    #print labels.head()
-    #sys.exit()
+    features = mydata[['isPol','TweetCounts','TweetFollow','country','money']]
+    labels   = mydata['isFam']
 
     trainFamousModel(features,labels)
     trainFamousVotingModel(features,labels)
+
+
+
+
+
 

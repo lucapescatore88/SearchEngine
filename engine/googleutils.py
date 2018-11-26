@@ -64,7 +64,8 @@ if __name__ == "__main__" :
 
     googledata = getPeopleData("GoogleData",args.trainfile,
                         myfunction=dummyParseGoogle,
-                        nobackup=args.nobackup)
+                        usebackup=args.usebackup,
+                        save=True)
 
     entries = []
     for key,dat in googledata.iteritems() :

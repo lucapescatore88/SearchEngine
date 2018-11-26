@@ -76,15 +76,21 @@ def getTwitterFollowers(name,surname) :
 
 if __name__ == "__main__" :
 
-    #print getTwitterCounts("Donald","Trump")
-    #import sys
-    #sys.exit()
-
     from engineutils import getPeopleData, trainparser
     from argparse import ArgumentParser
-    import pickle
+    import pickle, sys, csv
 
+    trainparser.add_argument("--sampledonald",action="store_true")
     args = trainparser.parse_args()
+
+    if args.sampledonald :
+        counts =  getTwitterCounts("Donald","Trump")
+        with open(resroot+'donald_twitter_samples.csv', 'a') as f:
+            now = datetime.now()
+            writer = csv.writer(f)
+            writer.writerow([counts,now.month,now.day,now.hour,now.minute])
+        sys.exit()
+
 
     def getTwitterData(name,surname) :
         return { 'name' : name, 'surname' : surname,
@@ -93,7 +99,8 @@ if __name__ == "__main__" :
 
     tweetdata = getPeopleData("TwitterData",args.trainfile,
                         myfunction=getTwitterData,
-                        nobackup=args.nobackup)
+                        usebackup=args.usebackup,
+                        save=True)
 
     entries = []
     for key,dat in tweetdata :

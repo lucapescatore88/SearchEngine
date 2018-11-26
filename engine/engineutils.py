@@ -32,7 +32,6 @@ def loadCurrencies() :
     symbols = []
     
     for ir,row in currency_df.iterrows():
-        #print row[1]['Alphabetic Code'],
         symbol = row['Alphabetic Code']
         try : 
             s = format_currency(1, row['Alphabetic Code'],locale='en_US')
@@ -50,7 +49,6 @@ def loadCountries() :
 
     df = pd.read_csv(resroot+"countries.csv")
     df['A3'] = df['A3'].apply(lambda x: re.sub("\\s+","",x))
-    df['A2'] = df['A2'].apply(lambda x: re.sub("\\s+","",x))
     df['Name'] = df['Name'].apply(lambda x: re.sub("\\s+"," ",x).lstrip().rstrip().upper())
     df["Code"] = df["Code"].apply(pd.to_numeric)
     #print df.dtypes
@@ -101,7 +99,6 @@ def convertCountry(code) :
             if int(row["Code"]) == int(code) :
                 return (row["A3"],row["Name"])
 
-    #print code, type(code)
     if isinstance(code,str) :
         code = code.upper().replace("\\s+"," ").lstrip().rstrip()
     else :
@@ -132,11 +129,11 @@ def convertCountry(code) :
             if code == row["Nationality"] :
                 return (row["A3"],row["Name"])
 
-    else :
-        print "I'm sorry I didn't find the country", code+"."
-        print "Only A2, A3 or numeric ISO 3166 codes are usable."
-        print "You can try with the full name too but you have to type it"
-        print "as it is in the DB. So be careful."
+    #else :
+    #    print "I'm sorry I didn't find the country", code+"."
+    #    print "Only A2, A3 or numeric ISO 3166 codes are usable."
+    #    print "You can try with the full name too but you have to type it"
+    #    print "as it is in the DB. So be careful."
 
     return (None,None)
 
@@ -148,22 +145,31 @@ def countryCode(text) :
         return countryinfo['Code'].values[0]
     return -1
 
+### Saves some pandas DF along with the prediction of a model
+def saveDataWithPrediction(name,data,model,varname = None) :
+
+    myvarname = 'prediction'
+    if varname is not None : myvarname = varname
+    data[myvarname] = model.predict(data)
+    with open(resroot+name+".pkl","w") as of :
+        pickle.dump(data,of)
+
 
 ### Function to run over a list of people and apply a function, supports backup
-def getPeopleData(hname,peoplefile,myfunction=None,nobackup=False) :
+def getPeopleData(hname,peoplefile=resroot+"people.csv",myfunction=None,usebackup=False,save=False) :
 
-    data = pd.read_csv(peoplefile)
+    people = pd.read_csv(peoplefile)
+    data   = {}
 
     ### To avoid running searches all the time can use backup
     backupfile = resroot+"/"+hname+"_backup.pkl"
-    backup   = {}
-
-    if os.path.exists(backupfile) and not nobackup:
-        backup = pickle.load(open(backupfile))
+    if os.path.exists(backupfile) and usebackup:
+        
+        data = pickle.load(open(backupfile))
         print "Loaded from saved data"
-        print backup.keys()
+        #print data.keys()
     
-    for ir,row in data.iterrows() :
+    for ir,row in people.iterrows() :
         name         = row["name"]
         surname      = row["surname"]
         isPolitician = row["politician"]
@@ -171,26 +177,32 @@ def getPeopleData(hname,peoplefile,myfunction=None,nobackup=False) :
 
         try :
             key = (name,surname,isPolitician,isFamous)
+            curfeatures = None
             if key in backup.keys() :
-                print hname+": Info for", name, surname, "already in store, use --nobackup to avoid using it"
-                curfeatures = backup[key]
-            else :
+                print hname+": Info for", name, surname, 
+                print "already in store, use --nobackup to avoid using it"
+                curfeatures = data[key]
+            elif myfunction is not None:
                 print hname+": Getting info for", name, surname
                 curfeatures = myfunction(name,surname)
+            else :
+                continue
             
-            #print curfeatures
-            backup[key] = curfeatures
-            if len(backup) > 0 : pickle.dump(backup,open(backupfile,"w"))
+            data[key] = curfeatures
+            if len(data) > 0 and save: 
+                pickle.dump(data,open(backupfile,"w"))
             
         except :
             continue
     
-    return backup
+    return data
 
+
+### Default parser used in all XXutils to load and save data for trainings.
 from argparse import ArgumentParser
 trainparser = ArgumentParser()
 trainparser.add_argument("--trainfile",default=resroot+"people.csv",
     help="The name of the csv file with names of politicians and not")
-trainparser.add_argument("--nobackup",action="store_true",
+trainparser.add_argument("--usebackup",action="store_true",
     help="If present it will try look for a backup file and use it if exists")
 

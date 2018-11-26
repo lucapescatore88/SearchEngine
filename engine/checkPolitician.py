@@ -1,11 +1,9 @@
+from engineutils import config, resroot, saveDataWithPrediction
 from sklearn.linear_model import LogisticRegression
 from scipy.spatial.distance import cosine
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-
-from sklearn.feature_extraction.text import CountVectorizer
-
-from engineutils import config, resroot
+#from sklearn.feature_extraction.text import CountVectorizer
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
 import string, math, os, sys
@@ -121,8 +119,13 @@ def trainNLPModel(politicians,normals) :
     model.fit(features_train,labels_train)
 
     ## Save model for future use
-    pickle.dump(model,open(modelfile,"w"))
-    pickle.dump(word_map,open(mapfile,"w"))
+    with open(modelfile,"w") as of :
+        pickle.dump(model,of)
+    with open(mapfile,"w") as of :
+        pickle.dump(word_map,of)
+    saveDataWithPrediction("NLPScored_train",features_train,model,"NLPout")
+    saveDataWithPrediction("NLPScored_test", features_test,model, "NLPout")
+
     print "Classification rate", model.score(features_test,labels_test)
 
     return model
@@ -145,7 +148,8 @@ def isPolitician(person) :
     #    weight = model.coef_[0][i]
     #    if(abs(weight)>thr) :
     #        print word, weight
-    return int(trained_model.predict(data) > config['nlp_thr'])
+    predict_df = trained_model.predict(data)
+    return int(predict_df.values[0] > config['nlp_thr'])
 
 
 ### Calculates cosigne between to vectors as a similarity measure (could use np.dot)
@@ -193,8 +197,6 @@ lemms_simple, word_map_simple = getTestMap()
 ### Returns average score on a list of texts
 def scoreSimpleNLP(people) :
 
-    #word_map, alltoks = makeDataSet(people,word_map_simple)
-    #testvector = tokensToVector(lemms_simple, word_map, label = None) 
     word_map, alltoks = makeDataSet(people)
     testvector = tokensToVector(lemms_simple, word_map_simple, label = None) 
 
@@ -213,7 +215,7 @@ def isPoliticianSimple(person) :
 ### Function to train the simplified model
 def trainSimpleNLPModel(politicians,normals) :
 
-    #print "Vectorising"
+    #### Try do it with CounterVectorizer
     #vectorizer = CountVectorizer()
     #texts = [' '.join(politics_words)]
     #texts.extend(politicians)
@@ -249,7 +251,6 @@ def trainSimpleNLPModel(politicians,normals) :
     df = pd.DataFrame(outdata)
     pickle.dump(df,open(nlpoutfile,"w"))
 
-
     if thr is not None :
         pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
         norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[ntestnorm:] ]
@@ -270,7 +271,6 @@ if __name__ == "__main__" :
         print "Please run 'python engine/googleutils.py' to get data for training"
         sys.exit()
 
-    from googleutils import parseGoogle
     import pickle
     data = pickle.load(open(resroot+"GoogleDF.pkl"))
     

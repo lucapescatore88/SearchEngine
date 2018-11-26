@@ -286,7 +286,8 @@ if __name__ == '__main__':
 
     wikidata = getPeopleData("WikiData",args.trainfile,
                         myfunction=parseWiki,
-                        nobackup=args.nobackup)
+                        usebackup=args.usebackup,
+                        save=True)
 
     entries = []
     for key,dat in wikidata.iteritems() :
