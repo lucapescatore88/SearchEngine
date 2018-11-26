@@ -21,33 +21,38 @@
 
         <!--      Inputs   -->
 
-        <div class="container-narrow" id="main-content" style="position:relative">
+        <div class="container-fluid" id="main-content" style="display:block;width:100%;">
                 <p>Give me a name and a surname and I'll tell you things! ;-) <br>
                 N.B: Nick names are not allowed, e.g. Johnny Depp -> John Depp.<br>
                 Sorry, engine is not yet smart enough and this was not a requirement.</p>
 
                 <form action="/action" name="mainform">
-                <div width="33%" style="position:absolute">
-                    First name:<br>
-                    <input type="text" name="firstname" value="John">
+                <div style="display:block;width:100%;">
+                    <div style="display:block;width:25%;float:left;margin-right:20px;">
+                        First name:<br>
+                        <input type="text" name="firstname" value="John">
+                    </div>
+                    <div style="display:block;width:25%;float:left;margin-right:20px;"> 
+                        Middle name:<br>
+                        <input type="text" name="midname" value="">
+                    </div>
+                    <div style="display:block;width:25%;float:left;"> 
+                        Last name:<br>
+                        <input type="text" name="lastname" value="Doe">
+                    </div>
                 </div>
-                <div width="33%"  style="position:absolute;left:20%">
-                    Middle name:<br>
-                    <input type="text" name="midname" value="">
-                </div>
-                <div width="33%" style="position:absolute;left:40%">
-                    Last name:<br>
-                    <input type="text" name="lastname" value="Doe">
-                </div> 
-                <br>
-                <div width="33%" style="position:absolute;top:90%">
+                <div style="display:block;width:100%;float:right;margin-top:20px;">
+                    <div style="display:block;width:100%;">
                     Country:<br>
-                    <select id="countryselect" name="countryselect">
-                        <option value="">No selection</option>
-                    </select>
-                </div>
-                <div width="33%" style="position:absolute;top:102%;left:40%">
-                    <input class="btn btn-success" type="submit" value="Submit">
+                    <div style="display:block;width:25%;margin-right:40px;float:left;"> 
+                        <select id="countryselect" name="countryselect">
+                            <option value="">No selection</option>
+                        </select>
+                    </div>
+                    <div style="display:block;width:50%;float:left;text-align:right;">
+                        <input class="btn btn-success" type="submit" value="Launch Search">
+                    </div>
+                    </div>
                 </div>
             </form>
             <br><br>
