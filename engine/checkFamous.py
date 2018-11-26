@@ -1,8 +1,8 @@
-from engineutils import country_df, countryCode, resroot, getPeopleData, saveDataWithPrediction
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from engineutils import country_df, countryCode, resroot, saveDataWithPrediction
+from twitterutils import getTwitterCounts, getTwitterFollowers
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import os, re, pickle
@@ -37,7 +37,7 @@ def trainFamousModel(features,labels) :
 
     print "Best parameters: "
     print modelXG.best_params_
-    print "XGBoost score      : %.2f" % (np.mean(scores)*100)
+    print "XGBoost score      : {:.2f}%".format(np.mean(scores)*100)
 
     with open(modelXGfile,"w") as of :
         pickle.dump(modelXG.best_estimator_,of)
@@ -66,21 +66,22 @@ def trainFamousVotingModel(features,labels) :
     scoresXG  = cross_val_score(modelXG,  features, labels, cv=10, scoring='accuracy')
     scoresRF  = cross_val_score(modelRF,  features, labels, cv=10, scoring='accuracy')
 
-    print "AdaBoost score     : %.2f" % (np.mean(scoresAda)*100)
-    print "XGBoost score      : %.2f" % (np.mean(scoresXG)*100)
-    print "Random forest score: %.2f" % (np.mean(scoresRF)*100)
+    print "AdaBoost score     : {:.2f}%".format(np.mean(scoresAda)*100)
+    print "XGBoost score      : {:.2f}%".format(np.mean(scoresXG)*100)
+    print "Random forest score: {:.2f}%".format(np.mean(scoresRF)*100)
 
     clfs = [('Ada',modelAda),('XG',modelXG),('RF',modelRF)]
     model  = VotingClassifier(estimators=clfs, voting='soft', n_jobs=4)
     model.fit(features,labels)
     ### "soft" option weights the vote for the accuracy of each
     
+    getClfsCorr(clfs,features)
     scores = cross_val_score(model, features, labels, cv=5, scoring='accuracy')
 
     with open(modelVotingfile,"w") as of :
         pickle.dump(modelXG,of)
     saveDataWithPrediction("votingScored",features,model,"isFamous")
-    print "Voting model score : %.2f" % (np.mean(scores)*100)
+    print "Voting model score : {:.2f}%".format(np.mean(scores)*100)
     return model
 
 
@@ -89,7 +90,7 @@ def trainFamousVotingModel(features,labels) :
 def getClfsCorr(clfs,test) :
         
     series = []
-    for nameclf,clf in clfs.iteritems() :
+    for nameclf,clf in clfs :
         series.append( pd.Series(clf.predict(test), name=nameclf) )
 
     ensemble_results = pd.concat(series,axis=1)
@@ -101,11 +102,13 @@ def getClfsCorr(clfs,test) :
 
 def isFamous(features) :
 
-    return trained_XGmodel(features) > 0.5
+    pred = trained_XGmodel.predict(features)
+    return pred[0] > 0.5
 
 def isFamousVoting(features) :
 
-    return trained_Votingmodel(features) > 0.5
+    pred = trained_Votingmodel.predict(features)
+    return pred.values[0] > 0.5
 
 ## Define One Hot Encoder for countries
 ## Hadles both int and string labelled categories 
@@ -122,27 +125,25 @@ class CountryOneHotEncoder :
 
         self.colnames = [colname+"_"+str(cl) for cl in self.le.classes_]
 
-    def encodeOneHot(self,somedf,somecolname=None) :
+    def encodeOneHot(self,df,colname=None) :
 
         if colname is None : colname = self.colname
-        lab_encoded = self.le.transform(somedf[colname])
+        lab_encoded = self.le.transform(df[colname])
         oh_encoded  = self.ohe.transform(lab_encoded.reshape(len(lab_encoded), 1))
 
-        return pd.DataFrame(oh_encoded, columns=colnames)
+        return pd.DataFrame(oh_encoded, columns=self.colnames)
 
 country_ohe = CountryOneHotEncoder(country_df,'Code')
 
 
 ### Parameters are already available quantities, so they won't be recalculated
 
-columns=['isPolitician','twitterCounts','country','money','nTwitFollowers']
-
 def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job=None) :
 
     fdict = {
-        'isPolitician'  : isPolitician,
+        'isPol'         : isPolitician,
         'TweetCounts'   : getTwitterCounts(name,surname),
-        'TweetFollows'  : getTwitterFollowers(name,surname),
+        'TweetFollow'   : getTwitterFollowers(name,surname),
         'country'       : country,
         'money'         : money
     }
@@ -152,9 +153,9 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
         fdict['country'] = countryCode(country)
 
     ### Recalculate quantities if they are missing
-    if fdict['isPolitician'] is None :
+    if fdict['isPol'] is None :
         googleout = parseGoogle(name,surname)
-        fdict['isPolitician'] = isPoliticianSimple(googleout)
+        fdict['isPol'] = isPoliticianSimple(googleout)
     
     if fdict['country'] is None or fdict['money'] is None :
 
@@ -164,15 +165,18 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
         if money is None :
             fdict['money'] = info["money"]
 
-    
     ### Process data so that the model can read it
     df = pd.DataFrame(fdict,index=[0])
 
     ## Convert country into One Hot Encoding
     oh_encoded = country_ohe.encodeOneHot(df,'country')
     df = pd.concat([df, oh_encoded], axis=1)
-    df.head()
-    df.drop('country')
+    df.drop(columns=['country'])
+
+    with open(resroot+"NameFeatures.pkl") as of:
+        df = df[pickle.load(of)]
+    #print df.head()
+    print df.columns
 
     return df
 
@@ -187,8 +191,6 @@ if __name__ == "__main__" :
         print "Please run 'python engine/wikiutils.py' to get data for training"
         sys.exit()
 
-    import pickle
-
     wikidata  = pickle.load(open(resroot+"WikiDF.pkl"))
     tweetdata = pickle.load(open(resroot+"TwitterDF.pkl"))
 
@@ -197,11 +199,16 @@ if __name__ == "__main__" :
     mydata['country'] = mydata['country'].apply(lambda x : countryCode(x))
     mydata['money'] = mydata['money'].apply( lambda x : -1 if isinstance(x,str) else x )
     pickle.dump(mydata,open(fulldffile,"w"))
-    #print mydata.columns
     
     features = mydata[['isPol','TweetCounts','TweetFollow','country','money']]
+    oh_encoded = country_ohe.encodeOneHot(features,'country')
+    features = pd.concat([features, oh_encoded], axis=1)
+    features.drop(columns=['country'])
+
     labels   = mydata['isFam']
 
+    with open(resroot+"NameFeatures.pkl","w") as of:
+        pickle.dump(features.columns,of)
     trainFamousModel(features,labels)
     trainFamousVotingModel(features,labels)
 

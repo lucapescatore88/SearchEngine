@@ -22,9 +22,6 @@ def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links'
           'q'      : querytxt 
         }
 
-    print "Searching on Google"
-    print querytxt
-
     myurl = queryurl+urllib.urlencode(f)
     req = requests.get(myurl)
     results = json.loads(req.text)

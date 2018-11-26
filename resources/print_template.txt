@@ -1,0 +1,28 @@
+  
+  
+  ____                 _ _       
+ |  _ \ ___  ___ _   _| | |_ ___ 
+ | |_) / _ \/ __| | | | | __/ __|
+ |  _ <  __/\__ \ |_| | | |_\__ \
+ |_| \_\___||___/\__,_|_|\__|___|
+
+
+I worked hard! I went on Wikipedia, on Google, on Twitter and here is what I found.
+
+The person you looked for is {name} {surname}.
+But actually he it called {name} {midname} {surname}.
+
+Profession  : {profession}
+Birthday    : {bday}
+Nationality : {country}
+Wealth      : {money}M $
+
+He is famous : {isFamous}
+He is a politician : {isPolitician}
+
+BIOGRAPHY:
+{bio}
+
+I hope I did good! See you next time!
+
+

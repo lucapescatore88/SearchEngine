@@ -7,6 +7,10 @@ import pickle
 root    = os.getenv("PICTETROOT")
 resroot = root+"/resources/"
 
+### Constants
+
+NAval = "N/A"
+
 ### Open config file and make it available via imports
 config = {}
 try :

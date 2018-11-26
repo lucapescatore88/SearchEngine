@@ -14,6 +14,12 @@ if [ "$1" == "test" ]; then
     python engine/runsearch.py Donald Trump
 elif [ "$1" == "web" ]; then
     flask run
+elif [ "$1" == "train" ]; then
+    python engine/wikiutils.py
+    python engine/twitter.py
+    python engine/googleutils.py
+    python engine/checkPolitician.py
+    python engine/checkFamous.py
 fi
 
 

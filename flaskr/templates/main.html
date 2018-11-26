@@ -11,45 +11,49 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <link rel="stylesheet" href="/static/assets/css/main.css" />
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-        <!--link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script-->
     </head>
     <body class="is-preload">
 
-        
         <header id="header">
             <h1>Pictet Assessment</h1>
-            <p>Data Scientist position</p>
+            <p>Data Scientist position: Building a search engine</p>
         </header>
 
+        <!--      Inputs   -->
 
-        <div class="container-narrow" id="main-content">
+        <div class="container-narrow" id="main-content" style="position:relative">
                 <p>Give me a name and a surname and I'll tell you things! ;-) <br>
                 N.B: Nick names are not allowed, e.g. Johnny Depp -> John Depp.<br>
                 Sorry, engine is not yet smart enough and this was not a requirement.</p>
 
                 <form action="/action" name="mainform">
-                <div width="28%">
-                First name:<br>
-                <input type="text" name="firstname" value="John">
+                <div width="33%" style="position:absolute">
+                    First name:<br>
+                    <input type="text" name="firstname" value="John">
                 </div>
-                <div width="28%">
-                Middle name:<br>
-                <input type="text" name="midname" value="">
+                <div width="33%"  style="position:absolute;left:20%">
+                    Middle name:<br>
+                    <input type="text" name="midname" value="">
                 </div>
-                <div width="28%">
-                Last name:<br>
-                <input type="text" name="lastname" value="Doe">
+                <div width="33%" style="position:absolute;left:40%">
+                    Last name:<br>
+                    <input type="text" name="lastname" value="Doe">
+                </div> 
+                <br>
+                <div width="33%" style="position:absolute;top:90%">
+                    Country:<br>
+                    <select id="countryselect" name="countryselect">
+                        <option value="">No selection</option>
+                    </select>
                 </div>
-                Country:<br>
-                <select id="countryselect" name="countryselect">
-                    <option value="">No selection</option>
-                </select>
-
-                <br><br>
-                <input class="btn btn-success" type="submit" value="Submit">
+                <div width="33%" style="position:absolute;top:102%;left:40%">
+                    <input class="btn btn-success" type="submit" value="Submit">
+                </div>
             </form>
+            <br><br>
     
+    <!--      Response section appears when button is clicked   -->
+
     {% if response %}
             Ok, I did my best: here is what I found!
         
@@ -62,12 +66,12 @@
                 <h3>Biography</h3>
                 <p>{{bio}}</p>
                 
-                {% if Politician %}
+                {% if isPolitician %}
                   <p><b>He is involved in politics!</b></p>
                 {% else %}
                   <p>He is not involved in politics. Doesn't care about power apparently.</p>
                 {% endif %}
-                {% if Famous %}
+                {% if isFamous %}
                   <p><b>He is famous!</b></p>
                 {% else %}
                   <p>Nobody knows him</p>
@@ -77,6 +81,9 @@
         
         </div>
         
+
+    <!--      Some info on myself :-)   -->
+
         <br><br><br>
         <div>
             Assessment material :

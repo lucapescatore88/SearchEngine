@@ -1,4 +1,4 @@
-from engineutils import loadCurrencies, cleanData, country_df, resroot
+from engineutils import loadCurrencies, cleanData, country_df, resroot, NAval
 from HTMLParser import HTMLParser
 from unidecode import unidecode
 from bs4 import BeautifulSoup
@@ -29,7 +29,7 @@ def findWikiProfession(soup) :
                 break
 
         if not found : continue
-        print "Found Profession tag!"
+        #print "Found Profession tag!"
 
         for li in tr.findChildren("li") :
             links =  li.findChildren("a")
@@ -54,35 +54,35 @@ def findWikiProfession(soup) :
 
 ### Find the Nationality
 
+strangepeople = ["ENGLISH","SCOTTISH","WELSH"]
+
+def unstrange(nat) :
+    if nat in strangepeople : 
+        return "BRITISH"
+    return nat
+
 def findNationality(text) :
 
-    #cleantext = text.encode('ascii',errors='ignore')
-    cleantext = text
-    cleantext = re.sub(r'\0xe2|\0xc3'," ",cleantext).lower()
-    cleantext = re.sub("\\s+"," ",cleantext).lower()
+    cleantext = re.sub(r'\0xe2|\0xc3|\\s+'," ",text).lower()
+    
     nationalities = country_df['Nationality'].tolist() ## List of nationalities to compare against
-    nationalities.append("ENGLISH")
+    nationalities.extend(strangepeople)
     countries = country_df['Name'].tolist() ## List of countries to compare against
 
-    foundnat, foundcount = None, None
     for nat in nationalities :
         if nat.lower() in cleantext :
-            foundnat = nat
+            return unstrange(foundnat)
+
     for country in countries :
         if country.lower() in cleantext :
-            foundcount = country
+            countryinfo = country_df.loc[country_df['Name'] == country]
+            return unstrange(countryinfo['Nationality'].values[0])
 
-    if foundnat == "ENGLISH" : foundnat = "BRITISH"
-
-    ## If both are found give precedence to the nationality
-    if foundnat is not None : return foundnat
-    if foundcount is not None : 
-        countryinfo = country_df.loc[country_df['Name'] == foundcount]
-        return countryinfo['Nationality'].values[0]
+    return NAval
 
 
 def findWikiNationality(soup,bio=None,fulltext=None) :
-
+    
     ## Find in infobox
     for tr in soup.findChildren("tr") :
         
@@ -93,9 +93,9 @@ def findWikiNationality(soup,bio=None,fulltext=None) :
                 break
 
         if not found : continue
-        print "Found Nationality tag!"
+        #print "Found Nationality tag!"
         td = tr.findChildren("td")[0]
-        if td.string.upper() == "ENGLISH" : return "BRITISH"
+        if td.string.upper() in strangepeople : return "BRITISH"
         return str(td.string)
 
         break
@@ -103,18 +103,17 @@ def findWikiNationality(soup,bio=None,fulltext=None) :
     ## Find in biography
 
     if bio is not None :
-        print "Searching for nationality in biography"
+        #print "Searching for nationality in biography"
         nat = findNationality(bio)
         if nat is not None : return nat
 
     ## Find in full Wiki page: just returns first nation or nationality found
     ## Could add scoring to return most represented nationality 
     if fulltext is not None :
-        print "Searching for nationality in full Wiki page"
+        #print "Searching for nationality in full Wiki page"
         return findNationality(fulltext)
 
-    print "Sorry no nationality found"
-    return "NA"
+    return NAval
 
 
 ### Find the Date of Birth
@@ -128,7 +127,7 @@ def findWikiBirthDay(soup,bio=None) :
     ## Find in biography
     if bio is not None :
 
-        print "Looking for birthday in biography"
+        #print "Looking for birthday in biography"
         match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
         
         months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
@@ -141,8 +140,32 @@ def findWikiBirthDay(soup,bio=None) :
         match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
         if match is not None : return match.groups()[0] 
 
-    print "Sorry no birthday found"
-    return "NA"
+    #print "Sorry no birthday found"
+    return NAval
+
+def parseBirthday(bday) :
+
+    if bday == NAval : 
+        return (-1, -1, -1)
+
+    dateobj = None
+    day, month, year = -1, -1, -1
+    try :
+        dateobj = datetime.strptime(bday,'%Y-%m-%d')
+    except Exception as e:
+        #print (e)
+        try :
+            dateobj = datetime.strptime(bday,'%B %d, %Y')
+        except : pass #Exception as e: print (e)
+    
+    if dateobj is None :
+        match = re.match(".*?(\\d{4}).*?",bday)
+        if match is not None :
+            year = int(match.groups()[0])
+    else :
+        day, month, year = dateobj.day, dateobj.month, dateobj.year
+
+    return (day, month, year)
 
 
 ### Find how rich they are
@@ -163,7 +186,7 @@ def findWikiNetWorth(soup) :
     tr = getNetWorthTag(soup)
 
     if tr is None : return money
-    print "Found Net Worth tag!"
+    #print "Found Net Worth tag!"
     
     content = tr.__str__().lower().decode("utf8")
     money = float(re.findall("\\d+\\.\\d+",content)[0])    ## Getting value
@@ -177,11 +200,11 @@ def findWikiNetWorth(soup) :
             curr = row['Alphabetic Code']
         elif row['Alphabetic Code'] in content :
             curr = row['Alphabetic Code']
+        break
 
-        ### Convert to US dollars
-        if curr is not None :
-            money = conv.convert(curr,"USD",money) 
-            break
+    ### Convert to US dollars
+    if curr is not None :
+        money = conv.convert(curr,"USD",money) 
 
     return money
 
@@ -218,8 +241,7 @@ def findWikiBiography(soup,name,surname) :
     return names, bio
 
 def parseWiki(name,surname,midname="",country="") :
-
-    print "Now searching Wikipedia"
+    
     query = '{name} {midname} {surname} {country}'.format(
                 name    = name, 
                 midname = midname,
@@ -233,47 +255,32 @@ def parseWiki(name,surname,midname="",country="") :
         page = wikipedia.page(mainpage)
     else :
         print "Something is wrong... no Wiki page found"
-        return {'name' : name,'surname': surname,'midname': "NA",
-                'bio'  : "NA", 'profession' : "NA",'bday': "NA",
-                'money': "NA",'country': "NA"}
+        return {'name' : name,'surname': surname,'midname': NAval,
+                'bio'  : NAval, 'profession' : NAval,'bday': NAval,
+                'money': -1,'country': NAval}
 
     req = requests.get(page.url)
     soup = BeautifulSoup(req.text)
 
     ### Do some extra processing
     midname, bio = findWikiBiography(soup,name,surname)
-    if bio is None : bio = "NA"
+    if bio is None : bio = NAval
     profs = findWikiProfession(soup)
     if profs is not None : profs = ', '.join(profs)
-    else : profs = "NA"
+    else : profs = NAval
     
     bday = findWikiBirthDay(soup,bio)
-    day, month, year = -1, -1, -1
-    if bday != "NA" : 
-        try :
-            dateobj = datetime.strptime(bday,'%Y-%m-%d')
-        except Exception as e:
-            print (e)
-            try :
-                dateobj = datetime.strptime(bday,'%B %d, %Y')
-            except Exception as e: print (e)
-        if dateobj is None :
-            match = re.match(".*?(\\d{4}).*?",bday)
-            if match is not None :
-                year = int(match.groups()[0])
-        else :
-            day, month, year = dateobj.day, dateobj.month, dateobj.year
+    day, month, year = parseBirthday(bday)
 
     ## Prepare output
     out = {
         'name'       : name, 'surname' : surname, 'midname' : midname,
-        'bio'        : bio, 
-        'profession' : profs,
+        'bio'        : bio, 'profession' : profs,
         'bday'       : bday, 'day' : day, 'month' : month, 'year' : year,
         'money'      : findWikiNetWorth(soup),
         'country'    : findWikiNationality(soup,bio,req.text)
     }
-    return out #, cleanData(req.text)
+    return out
 
 
 
