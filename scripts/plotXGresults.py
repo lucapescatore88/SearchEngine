@@ -35,8 +35,8 @@ mindist = 100
 bestcut = -1
 besteff = -1
 for c in cuts :
-    eff.append( len( dataFam.loc[data['isFamous']>c].values ) / totFam )
-    rej.append( len( dataNoFam.loc[data['isFamous']<c].values ) / totNoFam )
+    eff.append( len( dataFam.loc[dataFam['isFamous']>c].values ) / totFam )
+    rej.append( len( dataNoFam.loc[dataNoFam['isFamous']<c].values ) / totNoFam )
     dist = (1 -eff[-1])**2 +(1-rej[-1])**2
     if dist < mindist : 
         mindist = dist

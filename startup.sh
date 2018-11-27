@@ -5,7 +5,7 @@ echo ""
 echo ""
 
 export PYTHONWARNINGS="ignore"
-#export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 export PICTETROOT=$PWD
 export FLASK_APP=flaskr
 export FLASK_ENV=development

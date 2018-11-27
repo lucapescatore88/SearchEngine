@@ -1,0 +1,2 @@
+*/5 * * * * cd /Users/pluca/Jobs/Tests/PictetAssessment && source startup.sh && /usr/local/bin/python engine/twitterutils.py --sampledonald
+

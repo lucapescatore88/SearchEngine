@@ -32,7 +32,8 @@ def runSearch(name,surname,midname="",country="") :
     ## Getting google page to see if he it a polititian
     print "Now doing some serious NLP on Google to see if a politician"
     googleout = parseGoogle(name,surname,midname,country_name)
-    out["isPolitician"] = bool(isPolitician(googleout)) #isPoliticianSimple(googleout))
+    out["isPolitician"] = isPoliticianSimple(googleout)
+    #bool(isPolitician(googleout))
 
     print "Now doing some ML to understand if famous"
     features = getFamousFeatures(name,surname,

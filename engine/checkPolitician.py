@@ -9,7 +9,6 @@ import string, math, os, sys
 import pandas as pd
 import yaml, pickle
 import numpy as np
-import math
 
 spark = None
 if config['usespark'] :
@@ -67,12 +66,18 @@ def makeDataSetSpark(people,word_map={},fillWM=True) :
     spark.sparkContext.broadcast(stopw)
     spark.sparkContext.broadcast(lemmatizer)
 
+    def remove(w) :
+        if "//" in w or "www" in w : return False
+        if "http" in w or "''" in w : return False
+        if "`" in w or '\t' in w : return False
+        return True
+
     # Load up our data and convert it to the format MLLib expects.
     toks = []
     for person in people :
         inputs     = spark.sparkContext.parallelize([person])
         words      = inputs.flatMap(lambda x: word_tokenize(x) )
-        nolink     = words.filter(lambda w : "//" not in w and "www" not in w and "http" not in w )
+        nolink     = words.filter(lambda w : remove(w) )
         nodigit    = nolink.filter(lambda w : not any(char.isdigit() for char in w) )
         nodash     = nodigit.flatMap(lambda x: x.split("-") )
         lowords    = nodash.map(lambda w: w.lower())
@@ -137,7 +142,7 @@ def makeDataSet(people,word_map={},fillWM=True) :
 def trainNLPModel(politicians,normals) :
 
     poltexts = politicians.loc[:,'googletext'].tolist()
-    normtexts = politicians.loc[:,'googletext'].tolist()
+    normtexts = normals.loc[:,'googletext'].tolist()
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSetSpark(normtexts,word_map)
@@ -191,7 +196,9 @@ def trainNLPModel(politicians,normals) :
         dataNoPol[i,:] = tokensToVector(toks, word_map)
         i +=1
     normals['scorePol'] = model.predict(dataNoPol)
-    
+    eff, thr = optimiseThr(politicians,normals,'scorePol')
+    print "Best thrshold", thr
+
     with open(fullnlpoutfile,"w") as of :
         pickle.dump(politicians.append(normals),of)
 
@@ -256,7 +263,7 @@ def isPoliticianSimple(person) :
     if config['usespark'] :
         word_map, alltoks = makeDataSetSpark([person],word_map_simple,False)
     else :
-        word_map, alltoks = makeDataSet([person],word_map_simplem,False)
+        word_map, alltoks = makeDataSet([person],word_map_simple,False)
 
     vec        = tokensToVector(alltoks[0], word_map_simple)
     score      = cosvec(testvector,vec)
@@ -268,7 +275,7 @@ def isPoliticianSimple(person) :
 def trainSimpleNLPModel(politicians,normals) :
 
     poltexts = politicians.loc[:,'googletext'].tolist()
-    normtexts = politicians.loc[:,'googletext'].tolist()
+    normtexts = normals.loc[:,'googletext'].tolist()
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts)
         word_map, norm_toks = makeDataSetSpark(normtexts)
@@ -284,28 +291,48 @@ def trainSimpleNLPModel(politicians,normals) :
     pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[:ntestpol] ]
     norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[:ntestnorm] ]
 
-    ## The treshold will be the middle point between the two averages
-    thr = (np.mean(pol_scores) + np.mean(norm_scores))/2.
+    politicians['scorePolSimple'] = pd.Series(pol_scores)
+    normals['scorePolSimple'] = pd.Series(norm_scores)
+    eff, thr = optimiseThr(politicians,normals,'scorePolSimple')
+
     print "Mean Politics = ", np.mean(pol_scores)
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
 
-    politicians['scorePolSimple'] = pd.Series(pol_scores)
-    normals['scorePolSimple'] = pd.Series(norm_scores)
+    #if thr is not None :
+    #    pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
+    #    norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[ntestnorm:] ]
+        #print "Pos politics ", sum([1 for x in pol_scores if x > thr ]) / float(len(pol_scores))
+        #print "Pos normals ", sum([1 for x in norm_scores if x < thr ]) / float(len(norm_scores))
+        #print "Neg politics ", sum([1 for x in pol_scores if x < thr ]) / float(len(pol_scores))
+        #print "Neg normals ", sum([1 for x in norm_scores if x > thr ]) / float(len(norm_scores))
 
     with open(nlpoutfile,"w") as of :
         pickle.dump(politicians.append(normals),of)
 
-    if thr is not None :
-        pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
-        norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[ntestnorm:] ]
-        print "Pos politics ", sum([1 for x in pol_scores if x > thr ]) / float(len(pol_scores))
-        print "Pos normals ", sum([1 for x in norm_scores if x < thr ]) / float(len(norm_scores))
-        print "Neg politics ", sum([1 for x in pol_scores if x < thr ]) / float(len(pol_scores))
-        print "Neg normals ", sum([1 for x in norm_scores if x > thr ]) / float(len(norm_scores))
-
     return thr
 
+
+def optimiseThr(data1,data2,var) :
+
+    data = data1.append(data2)
+    cuts = np.linspace(data[[var]].min(),data[[var]].max(),100)
+    tot1 = float(len( data1.values ))
+    tot2 = float(len( data2.values ))
+    
+    eff, rej = [], []
+    mindist = 100
+    bestcut, besteff = -1, -1
+    for c in cuts :
+        eff.append( len( data1.loc[data1[var]>c].values ) / tot1 )
+        rej.append( len( data2.loc[data2[var]<c].values ) / tot2 )
+        dist = (1 -eff[-1])**2 +(1-rej[-1])**2
+        if dist < mindist : 
+            mindist = dist
+            bestcut = c
+            besteff = eff[-1]
+
+    return besteff, bestcut
 
 
 if __name__ == "__main__" :

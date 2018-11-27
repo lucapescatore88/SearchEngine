@@ -1,5 +1,5 @@
-from engineutils import loadCurrencies, cleanData
 from engineutils import country_df, resroot, NAval, convertToUSD
+from engineutils import loadCurrencies, cleanData
 from networthutils import parseNetWorth
 from HTMLParser import HTMLParser
 from unidecode import unidecode
@@ -29,7 +29,6 @@ def findWikiProfession(soup) :
                 break
 
         if not found : continue
-        #print "Found Profession tag!"
 
         for li in tr.findChildren("li") :
             links =  li.findChildren("a")
