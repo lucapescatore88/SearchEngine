@@ -217,7 +217,7 @@ politics_words = ["politics","election","decision","minister","senator","preside
                         "tyranny","federal","global","corruption","power","referendum"]
 
 lemms_simple      = prepareNLPData(' '.join(politics_words))
-word_map_simple   = fillWordMap(lemms)
+word_map_simple   = fillWordMap(lemms_simple)
 testvector        = tokensToVector(lemms_simple, word_map_simple)
 
 ### Returns true if the score of the simple model passes a threshold
