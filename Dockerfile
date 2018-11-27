@@ -25,18 +25,8 @@ RUN pip install unidecode
 RUN pip install tweepy
 RUN pip install xgboost
 RUN pip install nltk
+RUN pip install pyspark
 RUN python -c 'import nltk; nltk.download("all")'
-
-## Stuff to try fix the port forwarding on Mac
-#RUN mkdir /var/run/sshd
-#RUN echo 'root:screencast' | chpasswd
-#RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-#RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-#ENV NOTVISIBLE "in users profile"
-#RUN echo "export VISIBLE=now" >> /etc/profile
-#EXPOSE 22
-#CMD ["/usr/sbin/sshd", "-D"]
-
 
 EXPOSE 5000
 
@@ -47,6 +37,6 @@ COPY startup.sh startup.sh
 COPY cfg.yml cfg.yml
 
 RUN chmod +x startup.sh
+#ENTRYPOINT ["startup.sh"]
 CMD bash -C 'startup.sh test';'bash'
-
 

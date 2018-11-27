@@ -11,9 +11,11 @@ import yaml, pickle
 import numpy as np
 import math
 
-from pyspark.sql import SparkSession
-spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
-spark.sparkContext.setLogLevel('ERROR')
+spark = None
+if config['usespark'] :
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
+    spark.sparkContext.setLogLevel('ERROR')
 
 modelfile  = resroot+"NLP_politician_model.pkl"
 mapfile    = resroot+"NLP_politician_wordmap.pkl"
@@ -35,7 +37,7 @@ def checkWeights(word_map, model):
 
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
-checkWeights(trained_word_map,trained_model)
+#checkWeights(trained_word_map,trained_model)
 
 ### Splits words, simplifies them (lower case, remove stopwords, lemmatize)
 def prepareNLPData(data) :

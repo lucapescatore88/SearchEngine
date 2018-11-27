@@ -12,9 +12,9 @@ In order to use this repository you need many libraries.
 You can install them in your local environment using
 
 ```
-pip install RUN pip install pandas sklearn 'matplotlib==1.4.3' seaborn \
+pip install RUN pip install pandas sklearn 'matplotlib==1.4.3' seaborn pyspark \
        wikipedia Flask babel pyyaml forex-python unidecode tweepy xgboost nltk
-RUN python -c 'import nltk; nltk.download("all")'
+python -c 'import nltk; nltk.download("all")'
 ```
 
 Then run ```source startup.sh``` to set the environment.
@@ -43,8 +43,8 @@ starts the web interface.
 If you don't want to bother with all that you can build a Docker environment typing the following from the main folder:
 
 ```
-docker build -t pictet-image .
-docker run -p 5000:5000 -i -t pictet-image
+docker build -t {some name} .
+docker run -p 5000:5000 -i -t {some name}
 [DockerConsole]>>> python engine/runsearch.py Donald Trump
 ```
 

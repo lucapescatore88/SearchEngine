@@ -35,7 +35,7 @@ bestcut = -1
 besteff = -1
 for c in cuts :
     eff.append( len( dataPol.loc[data['scorePolSimple']>c].values ) / totPol )
-    rej.append( len( dataPol.loc[data['scorePolSimple']<c].values ) / totNoPol )
+    rej.append( len( dataNoPol.loc[data['scorePolSimple']<c].values ) / totNoPol )
     dist = (1 -eff[-1])**2 +(1-rej[-1])**2
     if dist < mindist : 
         mindist = dist

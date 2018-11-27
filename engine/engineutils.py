@@ -158,13 +158,13 @@ def countryCode(text) :
     return -1
 
 ### Saves some pandas DF along with the prediction of a model
-def saveDataWithPrediction(name,data,model,varname = None) :
+def saveDataWithPrediction(name,data,model,labels,varname = None) :
 
     myvarname = 'prediction'
     if varname is not None : myvarname = varname
     data[myvarname] = model.predict(data)
     with open(resroot+name+".pkl","w") as of :
-        pickle.dump(data,of)
+        pickle.dump(pd.concat([data,labels],axis=1),of)
 
 
 #### Currency conversion logic

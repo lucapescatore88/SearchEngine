@@ -25,7 +25,7 @@ def trainFamousModel(features,labels) :
         { 'learning_rate': [0.2,0.5,1.0,1.2,1.5], 'gamma': [0.,0.3,0.4,0.5,1.0], 'max_depth': [2,3,4,5,6,7,8] }
         ]
 
-    modelXG = GridSearchCV(estimator=XGBClassifier(), param_grid=param_cands_XG,cv=5)
+    modelXG = GridSearchCV(estimator=XGBClassifier(objective="reg:logistic"), param_grid=param_cands_XG,cv=5)
 
     ## Just test with no gridsearch
     #modelXG = XGBClassifier(learning_rate=0.2,gamma=0.4,max_depth=4)
@@ -39,9 +39,9 @@ def trainFamousModel(features,labels) :
     print modelXG.best_params_
     print "XGBoost score      : {:.2f}%".format(np.mean(scores)*100)
 
-    with open(modelXGfile,"w") as of :
-        pickle.dump(modelXG.best_estimator_,of)
-    saveDataWithPrediction("XGScored",features,modelXG.best_estimator_,"isFamous")
+    #with open(modelXGfile,"w") as of :
+    #    pickle.dump(modelXG.best_estimator_,of)
+    saveDataWithPrediction("XGScored",features,modelXG.best_estimator_,labels,"isFamous")
 
     return bestmodel
 
@@ -80,7 +80,7 @@ def trainFamousVotingModel(features,labels) :
 
     with open(modelVotingfile,"w") as of :
         pickle.dump(modelXG,of)
-    saveDataWithPrediction("votingScored",features,model,"isFamous")
+    saveDataWithPrediction("votingScored",features,model,labels,"isFamous")
     print "Voting model score : {:.2f}%".format(np.mean(scores)*100)
     return model
 
@@ -200,7 +200,6 @@ if __name__ == "__main__" :
     mydata['country'] = mydata['country'].apply(lambda x : countryCode(x))
     mydata['money'] = mydata['money'].apply( lambda x : -1 if isinstance(x,str) else x )
     mydata['scorePolSimple'] = mydata['scorePolSimple'].fillna(0).replace(np.inf, 0)
-    #print mydata   
     pickle.dump(mydata,open(fulldffile,"w"))
     
     features = mydata[['scorePolSimple','TweetCounts','TweetFollow','country','money']]

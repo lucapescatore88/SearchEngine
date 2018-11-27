@@ -16,9 +16,9 @@ sb.heatmap(corr)
 plt.savefig(plots+"VarsCorrelation.pdf")
 plt.clf()
 
-sys.exit()
-dataFam   = data.loc[data['isFam']==1,'famousScore']
-dataNoFam = data.loc[data['isFam']==0,'famousScore']
+#sys.exit()
+dataFam   = data.loc[data['isFam']==1,'isFamous']
+dataNoFam = data.loc[data['isFam']==0,'isFamous']
 
 sb.distplot(dataFam,kde=False)
 sb.distplot(dataNoFam,kde=False)
@@ -28,15 +28,15 @@ plt.clf()
 
 eff = []
 rej = []
-cuts = np.linspace(data[['famousScore']].min(),data[['famousScore']].max(),30)
-totPol = float(len( dataFam.values ))
-totNoPol = float(len( dataNoFam.values ))
+cuts = np.linspace(data[['isFamous']].min(),data[['isFamous']].max(),30)
+totFam = float(len( dataFam.values ))
+totNoFam = float(len( dataNoFam.values ))
 mindist = 100
 bestcut = -1
 besteff = -1
 for c in cuts :
-    eff.append( len( dataPol.loc[data['famousScore']>c].values ) / totFam )
-    rej.append( len( dataPol.loc[data['famousScore']<c].values ) / totNoFam )
+    eff.append( len( dataFam.loc[data['isFamous']>c].values ) / totFam )
+    rej.append( len( dataNoFam.loc[data['isFamous']<c].values ) / totNoFam )
     dist = (1 -eff[-1])**2 +(1-rej[-1])**2
     if dist < mindist : 
         mindist = dist

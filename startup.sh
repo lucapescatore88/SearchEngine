@@ -1,10 +1,11 @@
+#!/bin/bash
 echo ""
 cat resources/title.txt
 echo ""
 echo ""
 
 export PYTHONWARNINGS="ignore"
-export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+#export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
 export PICTETROOT=$PWD
 export FLASK_APP=flaskr
 export FLASK_ENV=development
@@ -22,7 +23,4 @@ elif [ "$1" == "train" ]; then
     python engine/checkPolitician.py
     python engine/checkFamous.py
 fi
-
-
-
 
