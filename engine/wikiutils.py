@@ -1,4 +1,5 @@
-from engineutils import loadCurrencies, cleanData, country_df, resroot, NAval
+from engineutils import loadCurrencies, cleanData
+from engineutils import country_df, resroot, NAval, convertToUSD
 from networthutils import parseNetWorth
 from HTMLParser import HTMLParser
 from unidecode import unidecode

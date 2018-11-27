@@ -33,10 +33,11 @@ EXPOSE 5000
 COPY engine engine
 COPY flaskr flaskr
 COPY resources resources
-COPY startup.sh startup.sh
+COPY startup.sh /startup.sh
 COPY cfg.yml cfg.yml
 
-RUN chmod +x startup.sh
-#ENTRYPOINT ["startup.sh"]
-CMD bash -C 'startup.sh test';'bash'
+RUN chmod +x /startup.sh
+ENTRYPOINT ["/startup.sh","test"]
+#CMD bash -C '/startup.sh test';'bash'
+#CMD ["python","engine/runsearch.py","test"]
 

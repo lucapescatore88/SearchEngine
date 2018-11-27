@@ -59,7 +59,8 @@ the app actually works in the background! This is just to tell you that dependin
     * engineutils.py -> Conteins generic utilities e.g. clean html pages and load countries DB
     * googleutils.py -> Functions to get data drom Google
     * wikiutils.py -> Functions to get data drom Wikipedia
-    * twitterutils.py -> Functions to get data drom Twitter
+    * twitterutils.py -> Functions to get data from Twitter
+    * newtworthutils.py -> Functions to get data from NetWorth website
     * checkPolitician.py -> Function to train and score a isPolitician classifier
     * checkFamous.py -> Function to train and score a isFamous classifier
 
