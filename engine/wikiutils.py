@@ -1,4 +1,5 @@
 from engineutils import loadCurrencies, cleanData, country_df, resroot, NAval
+from networthutils import parseNetWorth
 from HTMLParser import HTMLParser
 from unidecode import unidecode
 from bs4 import BeautifulSoup
@@ -11,8 +12,6 @@ import re, os
 
 wikipedia.set_lang("en")
 hparse = HTMLParser()
-currency_df = loadCurrencies()
-
 
 ### Find the Profession
 
@@ -93,7 +92,7 @@ def findWikiNationality(soup,bio=None,fulltext=None) :
                 break
 
         if not found : continue
-        #print "Found Nationality tag!"
+        
         td = tr.findChildren("td")[0]
         if td.string.upper() in strangepeople : return "BRITISH"
         return str(td.string)
@@ -103,14 +102,12 @@ def findWikiNationality(soup,bio=None,fulltext=None) :
     ## Find in biography
 
     if bio is not None :
-        #print "Searching for nationality in biography"
         nat = findNationality(bio)
         if nat is not None : return nat
 
     ## Find in full Wiki page: just returns first nation or nationality found
     ## Could add scoring to return most represented nationality 
     if fulltext is not None :
-        #print "Searching for nationality in full Wiki page"
         return findNationality(fulltext)
 
     return NAval
@@ -140,8 +137,8 @@ def findWikiBirthDay(soup,bio=None) :
         match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
         if match is not None : return match.groups()[0] 
 
-    #print "Sorry no birthday found"
     return NAval
+
 
 def parseBirthday(bday) :
 
@@ -170,9 +167,6 @@ def parseBirthday(bday) :
 
 ### Find how rich they are
 
-from forex_python.converter import CurrencyRates
-conv = CurrencyRates()
-
 def getNetWorthTag(soup) :
 
     for tr in soup.findChildren("tr") :
@@ -186,27 +180,13 @@ def findWikiNetWorth(soup) :
     tr = getNetWorthTag(soup)
 
     if tr is None : return money
-    #print "Found Net Worth tag!"
     
     content = tr.__str__().lower().decode("utf8")
     money = float(re.findall("\\d+\\.\\d+",content)[0])    ## Getting value
     if 'billion' in content :
         money *= 1000
 
-    curr = None
-    for ir,row in currency_df.iterrows() :
-
-        if row['Symbol'] in content :
-            curr = row['Alphabetic Code']
-        elif row['Alphabetic Code'] in content :
-            curr = row['Alphabetic Code']
-        break
-
-    ### Convert to US dollars
-    if curr is not None :
-        money = conv.convert(curr,"USD",money) 
-
-    return money
+    return convertToUSD(money,content)
 
 
 ## Find the biography 
@@ -221,7 +201,7 @@ def findWikiBiography(soup,name,surname) :
     for p in soup.findChildren("p") :
         found = False
         for b in p.findChildren("b") :
-            if name in b.string and surname in b.string :
+            if surname in b.string :
                 bio = p
                 names = b.string.replace(name,"")
                 names = names.replace(surname,"")
@@ -229,7 +209,7 @@ def findWikiBiography(soup,name,surname) :
                 found = True
         if found : break
 
-    if bio is None : return None, None
+    if bio is None : return NAval, NAval
     
     bio = re.sub(r"(?i)<[/]?[ibp]>","",bio.__str__())   # Remove p,i,b tags
     bio = re.sub(r"(?i)<sup.*?/sup[ ]*>","",bio)        # Remove citations
@@ -257,10 +237,11 @@ def parseWiki(name,surname,midname="",country="") :
         print "Something is wrong... no Wiki page found"
         return {'name' : name,'surname': surname,'midname': NAval,
                 'bio'  : NAval, 'profession' : NAval,'bday': NAval,
-                'money': -1,'country': NAval}
+                'money': -1,'country': NAval, "hasSites" : False}
 
     req = requests.get(page.url)
-    soup = BeautifulSoup(req.text)
+    mytext = ''.join([i if ord(i) < 128 else ' ' for i in req.text])
+    soup = BeautifulSoup(mytext)
 
     ### Do some extra processing
     midname, bio = findWikiBiography(soup,name,surname)
@@ -271,15 +252,26 @@ def parseWiki(name,surname,midname="",country="") :
     
     bday = findWikiBirthDay(soup,bio)
     day, month, year = parseBirthday(bday)
-
+    networth = findWikiNetWorth(soup)
+    nation   = findWikiNationality(soup,bio,mytext)
+    
     ## Prepare output
     out = {
         'name'       : name, 'surname' : surname, 'midname' : midname,
         'bio'        : bio, 'profession' : profs,
         'bday'       : bday, 'day' : day, 'month' : month, 'year' : year,
-        'money'      : findWikiNetWorth(soup),
-        'country'    : findWikiNationality(soup,bio,req.text)
+        'money'      : int(networth), 'country'    : nation
     }
+
+    ## Try NetWorth website which have some more money info for rich people
+    if networth == -1  or nation == NAval or profs == NAval : 
+        out = parseNetWorth(name,surname,out)
+
+    ### If not famous people websites are found set hasSites flag
+    out["hasSites"] = True
+    if networth == -1  and nation == NAval and profs == NAval and bio == NAval :
+        out["hasSites"] = False
+
     return out
 
 

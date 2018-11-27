@@ -1,5 +1,7 @@
+from forex_python.converter import CurrencyRates
 import re, os, sys, yaml
 import pandas as pd
+import urllib2
 import pickle
 
 ### Generic paths
@@ -23,8 +25,14 @@ except Exception as e:
     sys.exit()
 
 import warnings
-warnings.simplefilter("ignore")
-warnings.filterwarnings("ignore",category=DeprecationWarning)
+warnings.filterwarnings("ignore")
+
+def internet_off():
+    try:
+        urllib2.urlopen('http://216.58.192.142', timeout=0.2)
+        return False
+    except urllib2.URLError as err: 
+        return True
 
 ### Function to load the DB with currency codes and add symbols
 
@@ -103,8 +111,8 @@ def convertCountry(code) :
             if int(row["Code"]) == int(code) :
                 return (row["A3"],row["Name"])
 
-    if isinstance(code,str) :
-        code = code.upper().replace("\\s+"," ").lstrip().rstrip()
+    if isinstance(code,str) or isinstance(code,unicode) :
+        code = str(code).upper().replace("\\s+"," ").lstrip().rstrip()
     else :
         print "The input must be a number or a string"
         return (None,None)
@@ -157,6 +165,30 @@ def saveDataWithPrediction(name,data,model,varname = None) :
     data[myvarname] = model.predict(data)
     with open(resroot+name+".pkl","w") as of :
         pickle.dump(data,of)
+
+
+#### Currency conversion logic
+
+conv = CurrencyRates()
+currency_df = loadCurrencies()
+
+def convertToUSD(money,text) :
+
+    curr = None
+    for ir,row in currency_df.iterrows() :
+
+        if row['Symbol'] in text :
+            curr = row['Alphabetic Code']
+        elif row['Alphabetic Code'] in text :
+            curr = row['Alphabetic Code']
+        break
+
+    ### Convert to US dollars
+    if curr is not None :
+        money = conv.convert(curr,"USD",money) 
+
+    return money
+
 
 
 ### Function to run over a list of people and apply a function, supports backup

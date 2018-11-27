@@ -18,9 +18,24 @@ spark.sparkContext.setLogLevel('ERROR')
 modelfile  = resroot+"NLP_politician_model.pkl"
 mapfile    = resroot+"NLP_politician_wordmap.pkl"
 nlpoutfile = resroot+"NLP_simple_out.pkl"
+fullnlpoutfile = resroot+"NLP_out.pkl"
+
+#Function to check the weight given to each word
+def checkWeights(word_map, model):
+
+    recs = []
+    for w,i in word_map.iteritems() :
+        recs.append( {"word": w, "coeff" : model.coef_[0][i] })
+    df = pd.DataFrame(recs)
+    print "Most politics related words"
+    print df.sort_values('coeff', ascending=False).head(30)
+    print "Least politics related words"
+    print df.sort_values('coeff').head(30)
+
 
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
+checkWeights(trained_word_map,trained_model)
 
 ### Splits words, simplifies them (lower case, remove stopwords, lemmatize)
 def prepareNLPData(data) :
@@ -40,7 +55,7 @@ def prepareNLPData(data) :
     return lemmatised
 
 
-def makeDataSetSpark(people,word_map={}) :
+def makeDataSetSpark(people,word_map={},fillWM=True) :
 
     punct = list(string.punctuation)    ## Punctuation to remove
     stopw = stopwords.words('english')  ## Stopwords to remove
@@ -55,12 +70,16 @@ def makeDataSetSpark(people,word_map={}) :
     for person in people :
         inputs     = spark.sparkContext.parallelize([person])
         words      = inputs.flatMap(lambda x: word_tokenize(x) )
-        lowords    = words.map(lambda w: w.lower())
+        nolink     = words.filter(lambda w : "//" not in w and "www" not in w and "http" not in w )
+        nodigit    = nolink.filter(lambda w : not any(char.isdigit() for char in w) )
+        nodash     = nodigit.flatMap(lambda x: x.split("-") )
+        lowords    = nodash.map(lambda w: w.lower())
         nostop     = lowords.filter(lambda w : w not in stopw and w not in punct)
-        lemmatised = nostop.map(lambda w: lemmatizer.lemmatize(w))
+        nounicode  = nostop.filter(lambda w : all(ord(char) < 128 for char in w) )
+        lemmatised = nounicode.map(lambda w: lemmatizer.lemmatize(w))
 
         toks.append(lemmatised.collect())
-        fillWordMap(toks[-1],word_map)
+        if fillWM : fillWordMap(toks[-1],word_map)
     
     return word_map, toks
 
@@ -100,13 +119,13 @@ def tokensToVector(tokens, word_map, label = None) :
 
 
 ### Given a list texts applies lemmatisation and creates the map
-def makeDataSet(people,word_map={}) :
+def makeDataSet(people,word_map={},fillWM=True) :
 
     ## Build map from words to vector index
     toks = []
     for pol in people :
         lemms = prepareNLPData(pol)
-        word_map = fillWordMap(lemms,word_map)
+        if fillWM : word_map = fillWordMap(lemms,word_map)
         toks.append(lemms)
     
     return word_map, toks
@@ -151,14 +170,28 @@ def trainNLPModel(politicians,normals) :
     model.fit(features_train,labels_train)
 
     ## Save model for future use
-    with open(modelfile,"w") as of :
-        pickle.dump(model,of)
-    with open(mapfile,"w") as of :
-        pickle.dump(word_map,of)
-    saveDataWithPrediction("NLPScored_train",features_train,model,"NLPout")
-    saveDataWithPrediction("NLPScored_test", features_test,model, "NLPout")
+    #with open(modelfile,"w") as of :
+    #    pickle.dump(model,of)
+    #with open(mapfile,"w") as of :
+    #    pickle.dump(word_map,of)
 
     print "Classification rate", model.score(features_test,labels_test)
+
+    dataPol = np.zeros((len(pol_toks),len(word_map)))
+    i = 0
+    for toks in pol_toks :
+        dataPol[i,:] = tokensToVector(toks, word_map)
+        i +=1
+    politicians['scorePol'] = model.predict(dataPol)
+    dataNoPol = np.zeros((len(norm_toks),len(word_map)))
+    i = 0
+    for toks in norm_toks :
+        dataNoPol[i,:] = tokensToVector(toks, word_map)
+        i +=1
+    normals['scorePol'] = model.predict(dataNoPol)
+    
+    with open(fullnlpoutfile,"w") as of :
+        pickle.dump(politicians.append(normals),of)
 
     return model
 
@@ -169,22 +202,16 @@ def trainNLPModel(politicians,normals) :
 def isPolitician(person) :
 
     if config['usespark'] :
-        word_map, alltoks = makeDataSetSpark([person],trained_word_map)
+        word_map, alltoks = makeDataSetSpark([person],trained_word_map,False)
     else :
-        word_map, alltoks = makeDataSet([person],trained_word_map)
+        word_map, alltoks = makeDataSet([person],trained_word_map,False)
     
     data = np.zeros((1,len(word_map)))
-    data[0,:] = tokensToVector(toks, word_map)
-    
-    predict_df = trained_model.predict(data)
-    return predict_df.values[0] > config['nlp_thr']
+    data[0,:] = tokensToVector(alltoks, word_map)
 
+    predicted = trained_model.predict(data)
+    return predicted[0] > config['nlp_thr']
 
-#Function to check the weight given to each word
-def checkWeights():
-
-    for w,i in word_map.iteritems() :
-        print w, model.coef_[0][i]
 
 
 ### Calculates cosigne between to vectors as a similarity measure (could use np.dot)
@@ -225,10 +252,10 @@ testvector        = tokensToVector(lemms_simple, word_map_simple)
 def isPoliticianSimple(person) :
 
     if config['usespark'] :
-        word_map, alltoks = makeDataSetSpark([person],word_map_simple)
+        word_map, alltoks = makeDataSetSpark([person],word_map_simple,False)
     else :
-        word_map, alltoks = makeDataSet([person],word_map_simple)
-    
+        word_map, alltoks = makeDataSet([person],word_map_simplem,False)
+
     vec        = tokensToVector(alltoks[0], word_map_simple)
     score      = cosvec(testvector,vec)
 
@@ -261,10 +288,11 @@ def trainSimpleNLPModel(politicians,normals) :
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
 
-    politicians['scorePolSimple'] = pd.Series(pol_scores, index=politicians.index)
-    normals['scorePolSimple'] = pd.Series(pol_scores, index=normals.index)
+    politicians['scorePolSimple'] = pd.Series(pol_scores)
+    normals['scorePolSimple'] = pd.Series(norm_scores)
+
     with open(nlpoutfile,"w") as of :
-        pickle.dump(pd.concat(politicians,normals),of)
+        pickle.dump(politicians.append(normals),of)
 
     if thr is not None :
         pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]

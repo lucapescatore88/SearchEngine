@@ -40,7 +40,7 @@ I63
 tp16
 bI00
 (lp17
-S'isPol'
+S'scorePolSimple'
 p18
 aS'TweetCounts'
 p19

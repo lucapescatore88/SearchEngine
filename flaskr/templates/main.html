@@ -60,6 +60,7 @@
     <!--      Response section appears when button is clicked   -->
 
     {% if response %}
+            <div style="margin-top: 100px">
             Ok, I did my best: here is what I found!
         
             <div style="border-style:solid;border-width:3px;border-color:white;border-radius:10px;">
@@ -72,16 +73,17 @@
                 <p>{{bio}}</p>
                 
                 {% if isPolitician %}
-                  <p><b>He is involved in politics!</b></p>
+                  <h4>He is involved in politics!</h4>
                 {% else %}
-                  <p>He is not involved in politics. Doesn't care about power apparently.</p>
+                  <h4>He is not involved in politics. Doesn't care about power apparently.</h4>
                 {% endif %}
                 {% if isFamous %}
-                  <p><b>He is famous!</b></p>
+                  <h4>He is famous!</h4>
                 {% else %}
-                  <p>Nobody knows him</p>
+                  <h4>Nobody knows him</h4>
                 {% endif %}
             </div>
+        </div>
     {% endif %}
         
         </div>
