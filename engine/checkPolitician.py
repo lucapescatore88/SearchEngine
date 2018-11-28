@@ -1,6 +1,7 @@
 from engineutils import config, resroot, saveDataWithPrediction
 from sklearn.linear_model import LogisticRegression
-from scipy.spatial.distance import cosine
+from sklearn.model_selection import train_test_split
+#from scipy.spatial.distance import cosine
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from googleutils import parseGoogle
@@ -38,6 +39,14 @@ trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
 #checkWeights(trained_word_map,trained_model)
 
+def keepword(w) :
+    if len(w) < 4 : return False
+    if "//" in w or "www" in w or "http" in w: return False
+    if "''" in w or "`" in w or '\t' in w or '~' in w : return False
+    if all(ord(char) < 128 for char in w) : return False
+    if not any(char.isdigit() for char in w) : return False
+    return True
+
 ### Splits words, simplifies them (lower case, remove stopwords, lemmatize)
 def prepareNLPData(data) :
 
@@ -46,9 +55,17 @@ def prepareNLPData(data) :
 
     ## Divide words, and remove punctuation and stopwords
     tokens = word_tokenize(data)
-    filtered_words = [w.lower() for w in tokens if w.lower() not in stopw]
-    filtered_words = [w for w in filtered_words if w not in punct]
+    newtokens = []
+    for tok in tokens :
+        newtokens.extend(tok.split("-"))
+    newtokens2 = []
+    for tok in newtokens :
+        newtokens2.extend(tok.split("'"))
 
+    filtered_words = [w.lower() for w in newtokens2 if w.lower() not in stopw]
+    filtered_words = [w for w in filtered_words if w not in punct]
+    filtered_words = [w for w in filtered_words if keepword(w)]
+    
     ## Lemmatise words to limit phasespace: e.g dogs --> dog, doing --> do 
     lemmatizer = WordNetLemmatizer()
     lemmatised = [lemmatizer.lemmatize(w) for w in filtered_words]
@@ -66,24 +83,17 @@ def makeDataSetSpark(people,word_map={},fillWM=True) :
     spark.sparkContext.broadcast(stopw)
     spark.sparkContext.broadcast(lemmatizer)
 
-    def remove(w) :
-        if "//" in w or "www" in w : return False
-        if "http" in w or "''" in w : return False
-        if "`" in w or '\t' in w : return False
-        return True
-
     # Load up our data and convert it to the format MLLib expects.
     toks = []
     for person in people :
         inputs     = spark.sparkContext.parallelize([person])
         words      = inputs.flatMap(lambda x: word_tokenize(x) )
-        nolink     = words.filter(lambda w : remove(w) )
-        nodigit    = nolink.filter(lambda w : not any(char.isdigit() for char in w) )
-        nodash     = nodigit.flatMap(lambda x: x.split("-") )
-        lowords    = nodash.map(lambda w: w.lower())
+        nodash     = words.flatMap(lambda x: x.split("-") )
+        noapostr   = nodash.flatMap(lambda x: x.split("'") )
+        filtered   = noapostr.filter(lambda w : keepword(w) )
+        lowords    = filtered.map(lambda w: w.lower())
         nostop     = lowords.filter(lambda w : w not in stopw and w not in punct)
-        nounicode  = nostop.filter(lambda w : all(ord(char) < 128 for char in w) )
-        lemmatised = nounicode.map(lambda w: lemmatizer.lemmatize(w))
+        lemmatised = nostop.map(lambda w: lemmatizer.lemmatize(w))
 
         toks.append(lemmatised.collect())
         if fillWM : fillWordMap(toks[-1],word_map)
@@ -112,17 +122,19 @@ def tokensToVector(tokens, word_map, label = None) :
     dim = len(word_map)
     if label is not None : dim += 1
 
-    x = np.zeros(dim)
+    vec = np.zeros(dim)
+    vocabulary = word_map.keys()
     for t in tokens :
-        if t in word_map.keys() : 
-            x[word_map[t]] += 1
+        if t in vocabulary : 
+            vec[word_map[t]] += 1
 
     ## Normalise to get word frequency
-    norm = x.sum()
-    if norm > 0 : x = x / float(norm)
+    norm = vec.sum()
+    if norm > 1e-6 : vec = vec / float(norm)
+    else : vec = np.zeros(dim)
 
-    if label is not None : x[-1] = label
-    return x
+    if label is not None : vec[-1] = label
+    return vec
 
 
 ### Given a list texts applies lemmatisation and creates the map
@@ -141,6 +153,8 @@ def makeDataSet(people,word_map={},fillWM=True) :
 ### Function to train a NLP model for classifying politicians 
 def trainNLPModel(politicians,normals) :
 
+    ### Tockenise and clean data and fill the word map
+    print "Tockenising"
     poltexts = politicians.loc[:,'googletext'].tolist()
     normtexts = normals.loc[:,'googletext'].tolist()
     if config['usespark'] :
@@ -150,52 +164,68 @@ def trainNLPModel(politicians,normals) :
         word_map, pol_toks = makeDataSet(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSet(normtexts,word_map)
 
-    N = len(pol_toks) + len(norm_toks)
-    data = np.zeros((N,len(word_map)+1))
-    i = 0
-    for toks in pol_toks :
-        data[i,:] = tokensToVector(toks, word_map, label = 1)
-        i +=1
-    for toks in norm_toks :
-        data[i,:] = tokensToVector(toks, word_map, label = 0)
-        i +=1
+    ### Since it's a long computation time save intermediate steps for testing
+    #word_map  = pickle.load(open("mywordmap.pkl"))
+    #pol_toks  = pickle.load(open("poltoks.pkl"))
+    #norm_toks = pickle.load(open("normtoks.pkl"))
 
-    ### Shuffle to avoid using only politicians or only normals for training
-    np.random.shuffle(data)
+    with open("mywordmap.pkl","w") as of :
+        pickle.dump(word_map,of)
+    with open("poltoks.pkl","w") as of :
+        pickle.dump(pol_toks,of)
+    with open("normtoks.pkl","w") as of :
+        pickle.dump(norm_toks,of)
 
-    features = data[:,:-1]
-    labels   = data[:,-1]
+    ### Vectorise data
+    print "Vectorising"
+    recs = []
+    vocaulary = word_map.keys()
+    indices   = word_map.values()
+    for toks in pol_toks:
+        d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
+        d['Label'] = 1
+        recs.append(d)
+    dataPol = pd.DataFrame(recs)
+    recs = []
+    for toks in norm_toks:
+        d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
+        d['Label'] = 0
+        recs.append(d)
+    dataNorm = pd.DataFrame(recs)
 
-    ntest = int(-0.2 * len(data))
-    features_train = features[:ntest,]
-    labels_train = labels[:ntest,]
-    features_test  = features[ntest:,]
-    labels_test  = labels[ntest:,]
+    with open("dataNorm.pkl","w") as of :
+        pickle.dump(dataNorm,of)
+    with open("dataPol.pkl","w") as of :
+        pickle.dump(dataPol,of)
+
+    ### Since it's a long computation time save intermediate steps for testing
+    #dataNorm = pickle.load(open("dataNorm.pkl"))
+    #dataPol = pickle.load(open("dataPol.pkl"))
+    
+    ### Train the model
+    print "Fitting"
+    dat = dataPol.append(dataNorm)
+    feats = dat.drop('Label',axis=1)
+    labs  = dat['Label']
+
+    feats_train, feats_test, labs_train, labs_test \
+        = train_test_split(feats, labs, test_size=0.2)
 
     print "Fitting Logistic Regression model"
     model = LogisticRegression()
-    model.fit(features_train,labels_train)
+    model.fit(feats_train,labs_train)
 
     ## Save model for future use
-    #with open(modelfile,"w") as of :
-    #    pickle.dump(model,of)
-    #with open(mapfile,"w") as of :
-    #    pickle.dump(word_map,of)
+    with open(modelfile,"w") as of :
+        pickle.dump(model,of)
+    with open(mapfile,"w") as of :
+        pickle.dump(word_map,of)
 
-    print "Classification rate", model.score(features_test,labels_test)
+    print "Classification rate", model.score(feats_test,labs_test)
 
-    dataPol = np.zeros((len(pol_toks),len(word_map)))
-    i = 0
-    for toks in pol_toks :
-        dataPol[i,:] = tokensToVector(toks, word_map)
-        i +=1
-    politicians['scorePol'] = model.predict(dataPol)
-    dataNoPol = np.zeros((len(norm_toks),len(word_map)))
-    i = 0
-    for toks in norm_toks :
-        dataNoPol[i,:] = tokensToVector(toks, word_map)
-        i +=1
-    normals['scorePol'] = model.predict(dataNoPol)
+    ## Save scored data for plotting
+    politicians['scorePol'] = model.predict_proba(dataPol.drop('Label',axis=1))[:,1]
+    normals['scorePol'] = model.predict_proba(dataNorm.drop('Label',axis=1))[:,1]
     eff, thr = optimiseThr(politicians,normals,'scorePol')
     print "Best thrshold", thr
 
@@ -350,7 +380,7 @@ if __name__ == "__main__" :
     normals     = data.loc[data['isPol']==0]
 
     print "Training Simple model"
-    trainSimpleNLPModel(politicians,normals)
+    #trainSimpleNLPModel(politicians,normals)
     print "Training Logistic model"
     trainNLPModel(politicians,normals)
 

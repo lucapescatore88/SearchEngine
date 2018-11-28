@@ -1,7 +1,7 @@
+from engineutils import country_df, countryCode, resroot, saveDataWithPrediction, config
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-from engineutils import country_df, countryCode, resroot, saveDataWithPrediction
 from twitterutils import getTwitterCounts, getTwitterFollowers
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
@@ -25,7 +25,7 @@ def trainFamousModel(features,labels) :
         { 'learning_rate': [0.2,0.5,1.0,1.2,1.5], 'gamma': [0.,0.3,0.4,0.5,1.0], 'max_depth': [2,3,4,5,6,7,8] }
         ]
 
-    modelXG = GridSearchCV(estimator=XGBClassifier(objective="reg:logistic"), param_grid=param_cands_XG,cv=5)
+    modelXG = GridSearchCV(estimator=XGBClassifier(), param_grid=param_cands_XG,cv=5)
 
     ## Just test with no gridsearch
     #modelXG = XGBClassifier(learning_rate=0.2,gamma=0.4,max_depth=4)
@@ -39,8 +39,8 @@ def trainFamousModel(features,labels) :
     print modelXG.best_params_
     print "XGBoost score      : {:.2f}%".format(np.mean(scores)*100)
 
-    #with open(modelXGfile,"w") as of :
-    #    pickle.dump(modelXG.best_estimator_,of)
+    with open(modelXGfile,"w") as of :
+        pickle.dump(modelXG.best_estimator_,of)
     saveDataWithPrediction("XGScored",features,modelXG.best_estimator_,labels,"isFamous")
 
     return bestmodel
@@ -102,9 +102,9 @@ def getClfsCorr(clfs,test) :
 
 def isFamous(features) :
 
-    pred = trained_XGmodel.predict(features)
-    return pred[0] > 0.5
-
+    pred = trained_XGmodel.predict_proba(features)[:,1]
+    return pred[0] > config["isFamous_prob_threshold"]
+    
 def isFamousVoting(features) :
 
     pred = trained_Votingmodel.predict(features)

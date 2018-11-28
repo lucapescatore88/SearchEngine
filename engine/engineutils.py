@@ -7,7 +7,10 @@ import pickle
 ### Generic paths
 
 root    = os.getenv("PICTETROOT")
-resroot = root+"/resources/"
+class res : pass
+for d in filter(os.path.isdir, os.listdir(root)) :
+    res.__dict__[d.upper()] = root+"/%s/" % d
+resroot = res.RESOURCES
 
 ### Constants
 
@@ -84,7 +87,7 @@ def cleanData(data) :
     data = re.sub(r'(?i)<[ ]*?form.*?/form[ ]*>'," ",data)     # Remove full form tag with its content
     data = re.sub(r'(?i)<[ ]*?sup.*?/sup[ ]*>'," ",data)       # Remove citations
     
-    #data = re.sub(r'<.*?!DOCTYPE.+?html.*?>',"\n",data)        # Remove Doctype
+    #data = re.sub(r'<.*?!DOCTYPE.+?html.*?>',"\n",data)       # Remove Doctype
     #data = re.sub(r'(?i)<[/]?[ibp]>',"",data)                 # Remove p,i,b tags but not content
     #data = re.sub(r'(?i)<[/]?html.*?>',"",data)               # Remove html tags
     #data = re.sub(r'(?i)<[/]?body.*?>',"",data)               # Remove body tags
@@ -141,12 +144,6 @@ def convertCountry(code) :
             if code == row["Nationality"] :
                 return (row["A3"],row["Name"])
 
-    #else :
-    #    print "I'm sorry I didn't find the country", code+"."
-    #    print "Only A2, A3 or numeric ISO 3166 codes are usable."
-    #    print "You can try with the full name too but you have to type it"
-    #    print "as it is in the DB. So be careful."
-
     return (None,None)
 
 def countryCode(text) :
@@ -162,7 +159,7 @@ def saveDataWithPrediction(name,data,model,labels,varname = None) :
 
     myvarname = 'prediction'
     if varname is not None : myvarname = varname
-    data[myvarname] = model.predict(data)
+    data[myvarname] = model.predict_proba(data)[:,1]
     with open(resroot+name+".pkl","w") as of :
         pickle.dump(pd.concat([data,labels],axis=1),of)
 
