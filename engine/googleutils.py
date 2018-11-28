@@ -10,7 +10,6 @@ def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links'
                 surname = surname,
                 country = country ).replace("\\s+"," ")
 
-    #queryurl = "https://cse.google.com/cse"
     queryurl = "https://www.googleapis.com/customsearch/v1?"
 
     f = { 
@@ -34,7 +33,6 @@ def parseGoogle(name,surname,midname="",country="",nhits=config['n_google_links'
     fulldata = ""       ## Put all data together
     nok = 0
     for r in results :
-
         try :
             response = urllib2.urlopen(r["link"])
             #headers = response.info()

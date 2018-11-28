@@ -22,29 +22,15 @@ mapfile    = resroot+"NLP_politician_wordmap.pkl"
 nlpoutfile = resroot+"NLP_simple_out.pkl"
 fullnlpoutfile = resroot+"NLP_out.pkl"
 
-#Function to check the weight given to each word
-def checkWeights(word_map, model):
-
-    recs = []
-    for w,i in word_map.iteritems() :
-        recs.append( {"word": w, "coeff" : model.coef_[0][i] })
-    df = pd.DataFrame(recs)
-    print "Most politics related words"
-    print df.sort_values('coeff', ascending=False).head(30)
-    print "Least politics related words"
-    print df.sort_values('coeff').head(30)
-
-
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
-#checkWeights(trained_word_map,trained_model)
 
 def keepword(w) :
     if len(w) < 4 : return False
     if "//" in w or "www" in w or "http" in w: return False
     if "''" in w or "`" in w or '\t' in w or '~' in w : return False
-    if all(ord(char) < 128 for char in w) : return False
-    if not any(char.isdigit() for char in w) : return False
+    if not all(ord(char) < 128 for char in w) : return False
+    if any(char.isdigit() for char in w) : return False
     return True
 
 ### Splits words, simplifies them (lower case, remove stopwords, lemmatize)
@@ -55,12 +41,9 @@ def prepareNLPData(data) :
 
     ## Divide words, and remove punctuation and stopwords
     tokens = word_tokenize(data)
-    newtokens = []
-    for tok in tokens :
-        newtokens.extend(tok.split("-"))
-    newtokens2 = []
-    for tok in newtokens :
-        newtokens2.extend(tok.split("'"))
+    newtokens, newtokens2 = [], []
+    for tok in tokens : newtokens.extend(tok.split("-"))
+    for tok in newtokens : newtokens2.extend(tok.split("'"))
 
     filtered_words = [w.lower() for w in newtokens2 if w.lower() not in stopw]
     filtered_words = [w for w in filtered_words if w not in punct]
@@ -157,6 +140,7 @@ def trainNLPModel(politicians,normals) :
     print "Tockenising"
     poltexts = politicians.loc[:,'googletext'].tolist()
     normtexts = normals.loc[:,'googletext'].tolist()
+    word_map = None
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSetSpark(normtexts,word_map)
@@ -164,6 +148,7 @@ def trainNLPModel(politicians,normals) :
         word_map, pol_toks = makeDataSet(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSet(normtexts,word_map)
 
+    print "I studied, now I know %i words" % len(word_map)
     ### Since it's a long computation time save intermediate steps for testing
     #word_map  = pickle.load(open("mywordmap.pkl"))
     #pol_toks  = pickle.load(open("poltoks.pkl"))
@@ -211,9 +196,15 @@ def trainNLPModel(politicians,normals) :
     feats_train, feats_test, labs_train, labs_test \
         = train_test_split(feats, labs, test_size=0.2)
 
+    print "Doing PCA to make life easier for the model"
+    from sklearn.decomposition import PCA
+    pca = PCA(n_components=10)
+    pca_train = pca.fit_transform(feats_train)
+
     print "Fitting Logistic Regression model"
     model = LogisticRegression()
-    model.fit(feats_train,labs_train)
+    model.fit(pca_train,labs_train)
+    #model.fit(feats_train,labs_train)
 
     ## Save model for future use
     with open(modelfile,"w") as of :
@@ -221,7 +212,9 @@ def trainNLPModel(politicians,normals) :
     with open(mapfile,"w") as of :
         pickle.dump(word_map,of)
 
-    print "Classification rate", model.score(feats_test,labs_test)
+    pca_test = pca.transform(feats_test)
+    #print "Classification rate", model.score(feats_test,labs_test)
+    print "Classification rate", model.score(pca_test,labs_test)
 
     ## Save scored data for plotting
     politicians['scorePol'] = model.predict_proba(dataPol.drop('Label',axis=1))[:,1]
@@ -329,14 +322,6 @@ def trainSimpleNLPModel(politicians,normals) :
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
 
-    #if thr is not None :
-    #    pol_scores  = [ cosvec(testvector,vec) for vec in pol_vecs[ntestpol:] ]
-    #    norm_scores = [ cosvec(testvector,vec) for vec in norm_vecs[ntestnorm:] ]
-        #print "Pos politics ", sum([1 for x in pol_scores if x > thr ]) / float(len(pol_scores))
-        #print "Pos normals ", sum([1 for x in norm_scores if x < thr ]) / float(len(norm_scores))
-        #print "Neg politics ", sum([1 for x in pol_scores if x < thr ]) / float(len(pol_scores))
-        #print "Neg normals ", sum([1 for x in norm_scores if x > thr ]) / float(len(norm_scores))
-
     with open(nlpoutfile,"w") as of :
         pickle.dump(politicians.append(normals),of)
 
@@ -380,7 +365,7 @@ if __name__ == "__main__" :
     normals     = data.loc[data['isPol']==0]
 
     print "Training Simple model"
-    #trainSimpleNLPModel(politicians,normals)
+    trainSimpleNLPModel(politicians,normals)
     print "Training Logistic model"
     trainNLPModel(politicians,normals)
 

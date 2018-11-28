@@ -9,6 +9,7 @@ import os, re, pickle
 import seaborn as sb
 import pandas as pd
 import numpy as np
+import engineutils
 
 modelXGfile         = resroot+"XG_famous_model.pkl"
 modelVotingfile     = resroot+"voting_famous_model.pkl"
@@ -96,7 +97,7 @@ def getClfsCorr(clfs,test) :
     ensemble_results = pd.concat(series,axis=1)
 
     g = sb.heatmap(ensemble_results.corr(),annot=True)
-    plt.savefig("CLFsCorr.pdf")
+    plt.savefig(engineutils.res.PLOTS+"CLFsCorr.pdf")
     plt.cla()
 
 
@@ -104,7 +105,7 @@ def isFamous(features) :
 
     pred = trained_XGmodel.predict_proba(features)[:,1]
     return pred[0] > config["isFamous_prob_threshold"]
-    
+
 def isFamousVoting(features) :
 
     pred = trained_Votingmodel.predict(features)
