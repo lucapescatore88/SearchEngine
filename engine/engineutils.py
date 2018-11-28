@@ -7,6 +7,10 @@ import pickle
 ### Generic paths
 
 root    = os.getenv("PICTETROOT")
+if root is None :
+    print "Please run 'source startup.sh' before doing anything else."
+    sys.exit()
+
 class res : pass
 for d in filter(os.path.isdir, os.listdir(root)) :
     res.__dict__[d.upper()] = root+"/%s/" % d
@@ -21,7 +25,7 @@ config = {}
 try :
     f = open(root+"/cfg.yml")
     config = yaml.load(f)
-    print "Configuration:",config
+    #print "Configuration:",config
 except Exception as e: 
     print "Config file is not good"
     print(e)
@@ -211,7 +215,7 @@ def getPeopleData(hname,peoplefile=resroot+"people.csv",myfunction=None,usebacku
         try :
             key = (name,surname,isPolitician,isFamous)
             curfeatures = None
-            if key in backup.keys() :
+            if key in data.keys() :
                 print hname+": Info for", name, surname, 
                 print "already in store, use --nobackup to avoid using it"
                 curfeatures = data[key]
@@ -225,7 +229,8 @@ def getPeopleData(hname,peoplefile=resroot+"people.csv",myfunction=None,usebacku
             if len(data) > 0 and save: 
                 pickle.dump(data,open(backupfile,"w"))
             
-        except :
+        except Exception as e :
+            print e
             continue
     
     return data

@@ -103,7 +103,7 @@ if __name__ == "__main__" :
                         save=True)
 
     entries = []
-    for key,dat in tweetdata :
+    for key,dat in tweetdata.iteritems() :
 
         d = {}
         d["isPol"] = key[2]

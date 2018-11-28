@@ -70,7 +70,7 @@ def findNationality(text) :
 
     for nat in nationalities :
         if nat.lower() in cleantext :
-            return unstrange(foundnat)
+            return unstrange(nat)
 
     for country in countries :
         if country.lower() in cleantext :
@@ -235,7 +235,7 @@ def parseWiki(name,surname,midname="",country="") :
         page = wikipedia.page(mainpage)
     else :
         print "Something is wrong... no Wiki page found"
-        return {'name' : name,'surname': surname,'midname': NAval,
+        return {'name' : name,'surname': surname,'midname': "",
                 'bio'  : NAval, 'profession' : NAval,'bday': NAval,
                 'money': -1,'country': NAval, "hasSites" : False}
 

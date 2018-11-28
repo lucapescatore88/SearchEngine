@@ -7,24 +7,39 @@ import pickle
 import sys
 
 data = pickle.load(open(res.RESOURCES+"XGScored.pkl"))
-corr = data[['TweetCounts','TweetFollow','money','isFamous']].corr()
+corr = data[['TweetCounts','TweetFollows','money','isFamous']].corr()
 
 #print data.head()
 
 sb.set()
 sb.heatmap(corr,annot=True,cmap="Blues")
-plt.savefig(plots+"VarsCorrelation.pdf")
+plt.savefig(res.PLOTS+"VarsCorrelation.pdf")
 plt.clf()
 
-#sys.exit()
+
 dataFam   = data.loc[data['isFam']==1,:]
 dataNoFam = data.loc[data['isFam']==0,:]
 
-sb.distplot(dataFam['isFamous'],kde=False)
-sb.distplot(dataNoFam['isFamous'],kde=False)
-plt.legend(['Famous (mean = %.2f)' % dataFam['isFamous'].mean(),'Normals (mean = %.2f)' % dataNoFam['isFamous'].mean()], ncol=2, loc='best');
-plt.savefig(res.PLOTS+"XGout_seaborn.pdf")
+#print dataNoFam.loc[dataNoFam['TweetCounts'] > 0, ['TweetCounts','isFamous','isFam']].head(30)
+
+sb.jointplot(x="TweetCounts", y="TweetFollows", data=data)
+plt.savefig(res.PLOTS+"Counts_vs_Follow_hexagons.pdf")
 plt.clf()
+
+sb.relplot(x="TweetCounts", y="TweetFollows", hue="isFam", data=data)
+plt.savefig(res.PLOTS+"Counts_vs_Follow.pdf")
+plt.clf()
+
+
+for var in ['isFamous','TweetFollows','TweetCounts'] :
+    sb.distplot(dataNoFam[var],kde=False)
+    sb.distplot(dataFam[var],kde=False)
+    plt.legend(['Famous (mean = %.2f)' % dataFam[var].mean(),
+        'Normals (mean = %.2f)' % dataNoFam[var].mean()], loc='best')
+    plt.yscale('log')
+    plt.savefig(res.PLOTS+var+".pdf")
+    plt.clf()
+
 
 eff = []
 rej = []

@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 #from scipy.spatial.distance import cosine
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
+from sklearn.decomposition import PCA
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
 import string, math, os, sys
@@ -17,17 +18,19 @@ if config['usespark'] :
     spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
     spark.sparkContext.setLogLevel('ERROR')
 
-modelfile  = resroot+"NLP_politician_model.pkl"
-mapfile    = resroot+"NLP_politician_wordmap.pkl"
-nlpoutfile = resroot+"NLP_simple_out.pkl"
+pcamodelfile   = resroot+"PCA_politician_model.pkl"
+modelfile      = resroot+"NLP_politician_model.pkl"
+mapfile        = resroot+"NLP_politician_wordmap.pkl"
+nlpoutfile     = resroot+"NLP_simple_out.pkl"
 fullnlpoutfile = resroot+"NLP_out.pkl"
 
 trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
+trained_pca      = pickle.load(open(pcamodelfile))
 
 def keepword(w) :
     if len(w) < 4 : return False
-    if "//" in w or "www" in w or "http" in w: return False
+    if "/" in w or "www" in w or "http" in w: return False
     if "''" in w or "`" in w or '\t' in w or '~' in w : return False
     if not all(ord(char) < 128 for char in w) : return False
     if any(char.isdigit() for char in w) : return False
@@ -133,22 +136,31 @@ def makeDataSet(people,word_map={},fillWM=True) :
     return word_map, toks
 
 
+def getVectorDF(alltoks,word_map,label=None) :
+    recs = []
+    vocaulary = word_map.keys()
+    indices   = word_map.values()
+    for toks in alltoks:
+        d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
+        if label is not None : d['Label'] = 1
+        recs.append(d)
+    return pd.DataFrame(recs)
+
 ### Function to train a NLP model for classifying politicians 
 def trainNLPModel(politicians,normals) :
 
     ### Tockenise and clean data and fill the word map
-    print "Tockenising"
     poltexts = politicians.loc[:,'googletext'].tolist()
     normtexts = normals.loc[:,'googletext'].tolist()
     word_map = None
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSetSpark(normtexts,word_map)
-    else :
+    else :    
         word_map, pol_toks = makeDataSet(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSet(normtexts,word_map)
 
-    print "I studied, now I know %i words" % len(word_map)
+    #print "I studied, now I know %i words" % len(word_map)
     ### Since it's a long computation time save intermediate steps for testing
     #word_map  = pickle.load(open("mywordmap.pkl"))
     #pol_toks  = pickle.load(open("poltoks.pkl"))
@@ -162,33 +174,18 @@ def trainNLPModel(politicians,normals) :
         pickle.dump(norm_toks,of)
 
     ### Vectorise data
-    print "Vectorising"
-    recs = []
-    vocaulary = word_map.keys()
-    indices   = word_map.values()
-    for toks in pol_toks:
-        d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
-        d['Label'] = 1
-        recs.append(d)
-    dataPol = pd.DataFrame(recs)
-    recs = []
-    for toks in norm_toks:
-        d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
-        d['Label'] = 0
-        recs.append(d)
-    dataNorm = pd.DataFrame(recs)
-
+    dataPol  = getVectorDF(pol_toks,word_map,label=1)
+    dataNorm = getVectorDF(norm_toks,word_map,label=1)
     with open("dataNorm.pkl","w") as of :
         pickle.dump(dataNorm,of)
     with open("dataPol.pkl","w") as of :
-        pickle.dump(dataPol,of)
+       pickle.dump(dataPol,of)
 
     ### Since it's a long computation time save intermediate steps for testing
     #dataNorm = pickle.load(open("dataNorm.pkl"))
     #dataPol = pickle.load(open("dataPol.pkl"))
     
     ### Train the model
-    print "Fitting"
     dat = dataPol.append(dataNorm)
     feats = dat.drop('Label',axis=1)
     labs  = dat['Label']
@@ -196,12 +193,11 @@ def trainNLPModel(politicians,normals) :
     feats_train, feats_test, labs_train, labs_test \
         = train_test_split(feats, labs, test_size=0.2)
 
-    print "Doing PCA to make life easier for the model"
-    from sklearn.decomposition import PCA
+    #print "Doing PCA to make life easier for the model"
     pca = PCA(n_components=10)
     pca_train = pca.fit_transform(feats_train)
 
-    print "Fitting Logistic Regression model"
+    #print "Fitting Logistic Regression model"
     model = LogisticRegression()
     model.fit(pca_train,labs_train)
     #model.fit(feats_train,labs_train)
@@ -209,16 +205,21 @@ def trainNLPModel(politicians,normals) :
     ## Save model for future use
     with open(modelfile,"w") as of :
         pickle.dump(model,of)
-    with open(mapfile,"w") as of :
-        pickle.dump(word_map,of)
+    with open(pcamodelfile,"w") as of :
+        pickle.dump(pca,of)
 
     pca_test = pca.transform(feats_test)
     #print "Classification rate", model.score(feats_test,labs_test)
     print "Classification rate", model.score(pca_test,labs_test)
 
     ## Save scored data for plotting
-    politicians['scorePol'] = model.predict_proba(dataPol.drop('Label',axis=1))[:,1]
-    normals['scorePol'] = model.predict_proba(dataNorm.drop('Label',axis=1))[:,1]
+    allpol_pca  = pca.transform(dataPol.drop('Label',axis=1))
+    allnpol_pca = pca.transform(dataNorm.drop('Label',axis=1))
+    politicians['scorePol'] = model.predict_proba(allpol_pca)[:,0]
+    normals['scorePol'] = model.predict_proba(allnpol_pca)[:,0]
+
+    #politicians['scorePol'] = model.predict_proba(dataPol.drop('Label',axis=1))[:,1]
+    #normals['scorePol'] = model.predict_proba(dataNorm.drop('Label',axis=1))[:,1]
     eff, thr = optimiseThr(politicians,normals,'scorePol')
     print "Best thrshold", thr
 
@@ -227,22 +228,30 @@ def trainNLPModel(politicians,normals) :
 
     return model
 
-
-### Given a text return if it is a politician 
-### N.B.: Uses a pretrained model
-### N.B.: Threshold can be changed in cfg.yml
-def isPolitician(person) :
+def scorePolitician(person) :
 
     if config['usespark'] :
         word_map, alltoks = makeDataSetSpark([person],trained_word_map,False)
     else :
         word_map, alltoks = makeDataSet([person],trained_word_map,False)
     
-    data = np.zeros((1,len(word_map)))
-    data[0,:] = tokensToVector(alltoks, word_map)
+    data     = getVectorDF(alltoks,word_map)
+    features = trained_pca.transform(data)
 
-    predicted = trained_model.predict(data)
-    return predicted[0] > config['nlp_thr']
+    ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
+    classindex = trained_model.classes_.tolist().index(1)
+    score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
+    print "Politician score is", score
+    return score
+
+### Given a text return if it is a politician 
+### N.B.: Uses a pretrained model
+### N.B.: Threshold can be changed in cfg.yml
+def isPolitician(person) :
+
+    score = scorePolitician(person)
+    print "Politician score is", score
+    return predicted > config['isPolitician_prob_threshold']
 
 
 
@@ -260,7 +269,6 @@ def cosvec(v1,v2) :
         xy += v1[i]*v2[i]
     
     if math.sqrt(xx)*math.sqrt(yy) < 1e-6 :
-        #print "One of the two vectors is empty!!"
         return 0.
 
     return float(xy) / (math.sqrt(xx)*math.sqrt(yy))

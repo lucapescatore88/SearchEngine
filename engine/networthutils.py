@@ -7,7 +7,8 @@ def parseNetWorth(name,surname,data) :
 
     site = "https://www.celebritynetworth.com"
     urls = [site+"/richest-celebrities/actors/{name}-{surname}-net-worth/",
-            site+"/richest-businessmen/richest-billionaires/{name}-{surname}-net-worth/"]
+            site+"/richest-businessmen/richest-billionaires/{name}-{surname}-net-worth/",
+            site+"/richest-politicians/{name}-{surname}-net-worth/"]
     
     resp = None
     for url in urls :
@@ -23,8 +24,9 @@ def parseNetWorth(name,surname,data) :
     soup = BeautifulSoup(res)
 
     if data['money'] == -1 :
-        netwdiv = soup.findChildren("div",{'class':['meta_row','networth']})[0]
-        for val in netwdiv.findChildren("div",{'class':['value']}) :
+        netwdiv = soup.findChildren("div",{'class':['meta_row','networth']})
+        if len(netwdiv) > 0 :
+            for val in netwdiv[0].findChildren("div",{'class':['value']}) :
                 money = float(re.findall("\\d+[\\.]*?\\d+]*?",val.text)[0])
                 if "billions" in val.text.lower() :
                     money *= 1000

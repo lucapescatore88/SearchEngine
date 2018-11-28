@@ -57,6 +57,7 @@ if __name__ == "__main__" :
         return {'name' : name, 'surname' : surname,
                 'googletext' : parseGoogle(name,surname) }
 
+    print args.usebackup
     googledata = getPeopleData("GoogleData",args.trainfile,
                         myfunction=dummyParseGoogle,
                         usebackup=args.usebackup,
@@ -69,7 +70,6 @@ if __name__ == "__main__" :
         d['isPol'] = key[2]
         d['isFam'] = key[3]
         d.update(dat)
-        #print dat['name'], dat['surname'], len(dat['googletext'])
         entries.append(d)
 
     df = pd.DataFrame.from_dict(entries)

@@ -3,6 +3,7 @@ from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestC
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from twitterutils import getTwitterCounts, getTwitterFollowers
+from checkPolitician import scorePolitician
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import os, re, pickle
@@ -28,9 +29,6 @@ def trainFamousModel(features,labels) :
 
     modelXG = GridSearchCV(estimator=XGBClassifier(), param_grid=param_cands_XG,cv=5)
 
-    ## Just test with no gridsearch
-    #modelXG = XGBClassifier(learning_rate=0.2,gamma=0.4,max_depth=4)
-    
     modelXG.fit(features,labels)
 
     bestmodel = modelXG.best_estimator_
@@ -60,7 +58,6 @@ def trainFamousVotingModel(features,labels) :
 
     modelRF = RandomForestClassifier(n_estimators=100, max_depth=4)
     modelRF.fit(features,labels)
-
 
     ### Get an idea of how each one score singularly
     scoresAda = cross_val_score(modelAda, features, labels, cv=10, scoring='accuracy')
@@ -101,14 +98,25 @@ def getClfsCorr(clfs,test) :
     plt.cla()
 
 
-def isFamous(features) :
+def scoreFamous(features) :
 
-    pred = trained_XGmodel.predict_proba(features)[:,1]
-    return pred[0] > config["isFamous_prob_threshold"]
+    classindex = trained_XGmodel.classes_.tolist().index(1)
+    return trained_XGmodel.predict_proba(features)[:,classindex][0]
+
+def scoreFamousVoting(features) :
+
+    return trained_Votingmodel.predict_proba(features)[:,classindex][0]
+
+def isFamous(features, t="XG") :
+
+    print "Famous score is", scoreFamous(features)
+    if t=="XG" :
+        return scoreFamous(features) > config["isFamous_prob_threshold"]
+    return scoreFamousVoting(features) > config["isFamous_prob_threshold"]
 
 def isFamousVoting(features) :
 
-    pred = trained_Votingmodel.predict(features)
+    pred = trained_Votingmodel.predict(features)[:,0]
     return pred.values[0] > 0.5
 
 ## Define One Hot Encoder for countries
@@ -144,11 +152,10 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     fdict = {
         'scorePolSimple': isPolitician,
         'TweetCounts'   : getTwitterCounts(name,surname),
-        'TweetFollow'   : getTwitterFollowers(name,surname),
+        'TweetFollows'  : getTwitterFollowers(name,surname),
         'country'       : country,
         'money'         : money
     }
-    print fdict
 
     ### Take care of doing necessary conversions
     if country is not None :
@@ -157,7 +164,7 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
     ### Recalculate quantities if they are missing
     if fdict['scorePolSimple'] is None :
         googleout = parseGoogle(name,surname)
-        fdict['scorePolSimple'] = isPoliticianSimple(googleout)
+        fdict['scorePolSimple'] = scorePolitician(googleout)
     
     if fdict['country'] is None or fdict['money'] is None :
 
@@ -167,6 +174,7 @@ def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job
         if money is None :
             fdict['money'] = info["money"]
 
+    print fdict
     ### Process data so that the model can read it
     df = pd.DataFrame(fdict,index=[0])
 
@@ -203,7 +211,7 @@ if __name__ == "__main__" :
     mydata['scorePolSimple'] = mydata['scorePolSimple'].fillna(0).replace(np.inf, 0)
     pickle.dump(mydata,open(fulldffile,"w"))
     
-    features = mydata[['scorePolSimple','TweetCounts','TweetFollow','country','money']]
+    features = mydata[['scorePolSimple','TweetCounts','TweetFollows','country','money']]
     oh_encoded = country_ohe.encodeOneHot(features,'country')
     features = pd.concat([features, oh_encoded], axis=1)
     features.drop(columns=['country'])

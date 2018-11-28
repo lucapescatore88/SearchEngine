@@ -12,7 +12,12 @@ var = 'scorePolSimple'
 var = 'scorePol'
 
 data = pickle.load(open(file))
-print data.head()
+#print data.head()
+
+scale = (data[[var]].max() - data[[var]].min())
+shift = data[[var]].min()
+print "Scale and shift", scale, shift
+data[var] = data[var].apply( lambda x: (x-shift)/scale )
 
 sb.set()
 data = data.fillna(0)
@@ -27,13 +32,8 @@ plt.yscale('log')
 plt.savefig(res.PLOTS+"NLPout_seaborn.pdf")
 plt.clf()
 
-plt.hist(dataPol, normed=True, alpha=0.5)
-plt.hist(dataNoPol, normed=True, alpha=0.5)
-plt.savefig(res.PLOTS+"NLPout.pdf")
-plt.clf()
-
 eff, rej = [], []
-cuts = np.linspace(data[[var]].min(),data[[var]].max(),100)
+cuts = np.linspace(0,1,100)
 totPol = float(len( dataPol.values ))
 totNoPol = float(len( dataNoPol.values ))
 mindist = 100

@@ -44,7 +44,7 @@ S'scorePolSimple'
 p18
 aS'TweetCounts'
 p19
-aS'TweetFollow'
+aS'TweetFollows'
 p20
 aS'country'
 p21
