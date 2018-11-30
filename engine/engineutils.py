@@ -70,7 +70,6 @@ def loadCountries() :
     df['A3'] = df['A3'].apply(lambda x: re.sub("\\s+","",x))
     df['Name'] = df['Name'].apply(lambda x: re.sub("\\s+"," ",x).lstrip().rstrip().upper())
     df["Code"] = df["Code"].apply(pd.to_numeric)
-    #print df.dtypes
 
     return df
 
@@ -204,7 +203,6 @@ def getPeopleData(hname,peoplefile=resroot+"people.csv",myfunction=None,usebacku
         
         data = pickle.load(open(backupfile))
         print "Loaded from saved data"
-        #print data.keys()
     
     for ir,row in people.iterrows() :
         name         = row["name"]

@@ -26,7 +26,7 @@ RUN pip install tweepy
 RUN pip install xgboost
 RUN pip install nltk
 RUN pip install pyspark
-RUN python -c 'import nltk; nltk.download("all")'
+#RUN python -c 'import nltk; nltk.download("all")'
 
 EXPOSE 5000
 
@@ -37,7 +37,7 @@ COPY startup.sh /startup.sh
 COPY cfg.yml cfg.yml
 
 RUN chmod +x /startup.sh
-ENTRYPOINT ["/startup.sh","test"]
+ENTRYPOINT ["/startup.sh","web"]
 #CMD bash -C '/startup.sh test';'bash'
 #CMD ["python","engine/runsearch.py","test"]
 

@@ -124,18 +124,27 @@ def findWikiBirthDay(soup,bio=None) :
     ## Find in biography
     if bio is not None :
 
-        #print "Looking for birthday in biography"
-        match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
-        
+        ## Month DD, YYYY verison
         months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
-        patts = [ '%s.*?\\d{4}' % mon for mon in months ]
-        patt = '(?i)\\(.*?born.*?('+'|'.join(patts)+').*?\\)'
+        patts = [ r'%s.*?\d{4}' % mon for mon in months ]
+        patt = r'(?i).*?\(.*?born.*?('+'|'.join(patts)+r').*?\).*?'
         match = re.match(patt,bio)
         if match is not None : return match.groups()[0] 
 
-        # Try only year
-        match = re.match("(?i)\\(.*?born.*?(\\d{4}).*?\\)",bio)
+        ## DD Month YYYY verison
+        months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
+        patts = [ r'\d+ %s.*?\d{4}' % mon for mon in months ]
+        patt = r'(?i).*?\(.*?born.*?('+'|'.join(patts)+r').*?\).*?'
+        match = re.match(patt,bio)
         if match is not None : return match.groups()[0] 
+
+        # Match full date after born up to parethesis
+        match = re.match(r".*?\(.*?born (.*?\d{4}.*?)\).*?",bio)
+        if match is not None : return match.groups()[0] 
+
+        # Try only year
+        #match = re.match(r".*?\(.*?born (.*?)\).*?",bio)
+        #if match is not None : return match.groups()[0]        
 
     return NAval
 

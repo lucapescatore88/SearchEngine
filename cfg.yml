@@ -1,10 +1,10 @@
 isFamous_prob_threshold : 0.3
 simple_nlp_thr : 0.1
 isPolitician_prob_threshold : 0.1
-tweet_time : 10
-n_google_links : 10
-usespark : true
-usebackup : false
+tweet_time : 5
+n_google_links : 5
+usespark : false
+usebackup : true
 
 
 

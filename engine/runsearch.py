@@ -44,8 +44,9 @@ def runSearch(name,surname,midname="",country="") :
     ## Getting google page to see if he it a polititian
     print "Now doing some serious NLP on Google to see if a politician"
     googleout = parseGoogle(name,surname,midname,country_name)
-    scorePol = scorePolitician(googleout)
-    out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
+    #scorePol = scorePolitician(googleout)
+    #out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
+    out["isPolitician"] = 1
 
     print "Now doing some ML to understand if famous"
     features = getFamousFeatures(name,surname,
