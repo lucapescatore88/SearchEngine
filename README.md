@@ -26,7 +26,7 @@ You can run the application from command line as
 ```python engine/runsearch.py Donald Trump```
 
 Or you can access it from the browser too by typing `flask run` to start the server 
-and then going to `http://127.0.0.1/5000/` from any browser on your local machine.
+and then going to `http://0.0.0.0:80/` from any browser on your local machine.
 
 To make it easier you can use directly the startup script:
 
@@ -44,13 +44,18 @@ If you don't want to bother with all that you can build a Docker environment typ
 
 ```
 docker build -t {some name} .
-docker run -p 80:5000 -i -t {some name}
-[DockerConsole]>>> python engine/runsearch.py Donald Trump
+```
+or
+```
+ docker pull lucapescatore88/search-engine
+```
+And then run
+```
+docker run -p 80:80 -i -t {'some name' or lucapescatore88/search-engine}
 ```
 
-N.B.: The web interface works from Docker too but there is some problem with port forwarding out of the container. 
-On linux you can then go to a brower and use the app. On my Mac so the website will not appear... but this is a detail, 
-the app actually works in the background! This is just to tell you that depending on what machine you are this may not work.
+On linux you can then go to a brower and use the app. 
+On my Mac so the website will not appear... but this is a detail, the app actually works in the background! This is just to tell you that depending on what machine you are this may not work.
 
 ## Structure
 
