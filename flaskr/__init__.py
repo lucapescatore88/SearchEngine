@@ -1,6 +1,5 @@
 import warnings
-warnings.simplefilter("ignore")
-warnings.filterwarnings("ignore",category=DeprecationWarning)
+warnings.filterwarnings("ignore")
 
 from urlparse import urlparse, parse_qs
 import os, sys

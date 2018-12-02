@@ -59,6 +59,17 @@ def prepareNLPData(data) :
 
     return lemmatised
 
+### Given a list texts applies lemmatisation and creates the map
+def makeDataSet(people,word_map={},fillWM=True) :
+
+    ## Build map from words to vector index
+    toks = []
+    for text in people :
+        lemms = prepareNLPData(text)
+        if fillWM : word_map = fillWordMap(lemms,word_map)
+        toks.append(lemms)
+    
+    return word_map, toks
 
 def makeDataSetSpark(people,word_map={},fillWM=True) :
 
@@ -123,19 +134,6 @@ def tokensToVector(tokens, word_map, label = None) :
     return vec
 
 
-### Given a list texts applies lemmatisation and creates the map
-def makeDataSet(people,word_map={},fillWM=True) :
-
-    ## Build map from words to vector index
-    toks = []
-    for text in people :
-        lemms = prepareNLPData(text)
-        if fillWM : word_map = fillWordMap(lemms,word_map)
-        toks.append(lemms)
-    
-    return word_map, toks
-
-
 def getVectorDF(alltoks,word_map,label=None) :
     recs = []
     vocaulary = word_map.keys()
@@ -146,10 +144,10 @@ def getVectorDF(alltoks,word_map,label=None) :
         recs.append(d)
     return pd.DataFrame(recs)
 
+
 ### Function to train a NLP model for classifying politicians 
 def trainNLPModel(politicians,normals,vname="googletext") :
 
-    ### Tockenise and clean data and fill the word map
     poltexts = politicians.loc[:,vname].tolist()
     normtexts = normals.loc[:,vname].tolist()
     word_map = None
@@ -161,29 +159,13 @@ def trainNLPModel(politicians,normals,vname="googletext") :
         word_map, norm_toks = makeDataSet(normtexts,word_map)
 
     #print "I studied, now I know %i words" % len(word_map)
-    ### Since it's a long computation time save intermediate steps for testing
-    #word_map  = pickle.load(open("mywordmap.pkl"))
-    #pol_toks  = pickle.load(open("poltoks.pkl"))
-    #norm_toks = pickle.load(open("normtoks.pkl"))
 
     with open("mywordmap.pkl","w") as of :
         pickle.dump(word_map,of)
-    with open("poltoks.pkl","w") as of :
-        pickle.dump(pol_toks,of)
-    with open("normtoks.pkl","w") as of :
-        pickle.dump(norm_toks,of)
 
     ### Vectorise data
     dataPol  = getVectorDF(pol_toks,word_map,label=1)
     dataNorm = getVectorDF(norm_toks,word_map,label=0)
-    with open("dataNorm.pkl","w") as of :
-        pickle.dump(dataNorm,of)
-    with open("dataPol.pkl","w") as of :
-        pickle.dump(dataPol,of)
-
-    ### Since it's a long computation time save intermediate steps for testing
-    #dataNorm = pickle.load(open("dataNorm.pkl"))
-    #dataPol = pickle.load(open("dataPol.pkl"))
     
     ### Train the model
     dat = dataPol.append(dataNorm)
@@ -193,11 +175,9 @@ def trainNLPModel(politicians,normals,vname="googletext") :
     feats_train, feats_test, labs_train, labs_test \
         = train_test_split(feats, labs, test_size=0.2)
 
-    #print "Doing PCA to make life easier for the model"
     pca = PCA(n_components=10)
     pca_train = pca.fit_transform(feats_train)
 
-    #print "Fitting Logistic Regression model"
     model = LogisticRegression()
     model.fit(pca_train,labs_train)
     #model.fit(feats_train,labs_train)
@@ -228,6 +208,7 @@ def trainNLPModel(politicians,normals,vname="googletext") :
 
     return model
 
+
 def scorePolitician(person,method="simple") :
 
     if config['usespark'] :
@@ -254,11 +235,13 @@ def scorePolitician(person,method="simple") :
 ### Given a text return if it is a politician 
 ### N.B.: Uses a pretrained model
 ### N.B.: Threshold can be changed in cfg.yml
-def isPolitician(person) :
+def isPolitician(person,method="simple") :
 
-    score = scorePolitician(person)
+    score = scorePolitician(person,method)
     print "Politician score is", score
-    return predicted > config['isPolitician_prob_threshold']
+    if method=="simple" :
+        return score > config['isPoliticianSimple_prob_threshold']
+    return score > config['isPolitician_prob_threshold']
 
 
 
@@ -293,14 +276,6 @@ politics_words = ["politics","election","decision","minister","senator","preside
 lemms_simple      = prepareNLPData(' '.join(politics_words))
 word_map_simple   = fillWordMap(lemms_simple)
 testvector        = tokensToVector(lemms_simple, word_map_simple)
-
-### Returns true if the score of the simple model passes a threshold
-### N.B.: Threshold was pretrained and can be changed in cfg.yml
-def isPoliticianSimple(person) :
-
-    score = scorePolitician(person,method="simple")
-    return score > config['simple_nlp_thr']
-
 
 ### Function to train the simplified model
 def trainSimpleNLPModel(politicians,normals,vname="googletext") :
@@ -361,25 +336,15 @@ def optimiseThr(data1,data2,var) :
 
     return besteff, bestcut
 
-def makeTrainTextDF(x) :
+def makeTrainText(x) :
 
     cleanbio = removeUnicode(x['bio'])
     cleanbio = re.sub(r"\(.*?\)","",cleanbio)
-    cleanbio = cleanbio.replace(str(x['name']),"")
-    cleanbio = cleanbio.replace(str(x['surname']),"")
-    #cleanbio = cleanbio.replace(str(x['midname']),"")
+    cleanbio = cleanbio.replace(str(removeUnicode(x['name'])),"")
+    cleanbio = cleanbio.replace(str(removeUnicode(x['surname'])),"")
+    cleanbio = cleanbio.replace(str(removeUnicode(x['midname'])),"")
     cleanbio = re.sub(r"\d","",cleanbio)
     return cleanbio + " " + removeUnicode(x['profession'])
-
-def makeTrainText(bio,name,surname,profession) :
-    
-    cleanbio = removeUnicode(bio)
-    cleanbio = re.sub(r"\(.*?\)","",cleanbio)
-    cleanbio = cleanbio.replace(str(name),"")
-    cleanbio = cleanbio.replace(str(surname),"")
-    #cleanbio = cleanbio.replace(str(x['midname']),"")
-    cleanbio = re.sub(r"\d","",cleanbio)
-    return cleanbio + " " + removeUnicode(profession)
 
 
 if __name__ == "__main__" :
@@ -394,7 +359,7 @@ if __name__ == "__main__" :
     data = pickle.load(open(resroot+"WikiDF.pkl"))
 
     data['bio']        = data['bio'].fillna("")
-    data['traintext']  = data.apply(lambda x : makeTrainTextDF(x), axis=1)
+    data['traintext']  = data.apply(lambda x : makeTrainText(x), axis=1)
     politicians = data.loc[data['isPol']==1]
     normals     = data.loc[data['isPol']==0]
 

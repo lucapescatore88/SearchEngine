@@ -45,7 +45,8 @@ def runSearch(name,surname,midname="",country="") :
     ## Getting google page to see if he it a polititian
     print "Now doing some serious NLP on Google to see if a politician"
     #googleout = parseGoogle(name,surname,midname,country_name)
-    text = makeTrainText(out['bio'],out['name'],out['surname'],out['profession'])
+    text = makeTrainText(out)
+    #out['bio'],out['name'],out['surname'],out['profession'])
     scorePol  = scorePolitician(text)
     out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
     
