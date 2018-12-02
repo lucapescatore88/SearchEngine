@@ -22,6 +22,7 @@ def backupEntry(name,surname,data) :
 
 def runSearch(name,surname,midname="",country="") :
 
+    print "Searching ",name,surname
     if config['usebackup'] or internet_off():
         with open(resroot+"backup.pkl") as file :
             bk = pickle.load(file)
@@ -46,7 +47,6 @@ def runSearch(name,surname,midname="",country="") :
     print "Now doing some serious NLP on Google to see if a politician"
     #googleout = parseGoogle(name,surname,midname,country_name)
     text = makeTrainText(out)
-    #out['bio'],out['name'],out['surname'],out['profession'])
     scorePol  = scorePolitician(text)
     out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
     

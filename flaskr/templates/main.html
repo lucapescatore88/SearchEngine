@@ -6,11 +6,18 @@
 -->
 <html>
     <head>
-        <title>Luca Pescatore's websites</title>
+        <title>Search Engine</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <link rel="stylesheet" href="/static/assets/css/main.css" />
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+        <style>
+        #loadinginner {
+            background: url(/static/images/LoadingImage.gif) no-repeat 5px 3px;
+            padding-left: 20px;
+        }
+        </style>
     </head>
     <body class="is-preload">
 
@@ -50,7 +57,8 @@
                         </select>
                     </div>
                     <div style="display:block;width:50%;float:left;text-align:right;">
-                        <input class="btn btn-success" type="submit" value="Launch Search">
+                        <input class="btn btn-success" type="submit" 
+                                value="Launch Search" onclick="loading();">
                     </div>
                     </div>
                 </div>
@@ -58,8 +66,12 @@
             <br><br>
     
     <!--      Response section appears when button is clicked   -->
-
+    <div id="loading" style="display:block;width:100%;text-align:center;">
+        <br><br>
+        <div id="loadinginner" style="display:none;"></div>
+    </div>
     {% if response %}
+        <br><br>
             <div style="margin-top: 100px">
             Ok, I did my best: here is what I found!
         
@@ -150,6 +162,10 @@
                     option.value = toks[1];
                     sel.appendChild(option);
                 }
+            }
+
+            function loading() {
+                $("#loadinginner").show();
             }
         </script>
 

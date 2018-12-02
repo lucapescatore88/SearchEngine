@@ -22,7 +22,6 @@ def create_app(test_config=None):
         # Load the test config if passed in
         app.config.from_mapping(test_config)
 
-    # Ensure the instance folder exists
     try:
         os.makedirs(app.instance_path)
     except OSError:
@@ -34,7 +33,7 @@ def create_app(test_config=None):
 
     @app.route('/action',methods = ['GET','POST'])
     def action():
-        #flash('Engine is doing a lot of work, this will take a while.')
+        flash('Engine is doing a lot of work, this will take a while.')
 
         first   = str(request.args.get('firstname'))
         last    = str(request.args.get('lastname'))
@@ -45,7 +44,12 @@ def create_app(test_config=None):
         if 'countryselect' in pars.keys() :
             country = pars['countryselect'][0]
 
-        res   = engine.runsearch.runSearch(first,last,mid,country)
+        res = {}
+        try :
+            print "Running search for ", first, last
+            res = engine.runsearch.runSearch(first,last,mid,country)
+        except :
+            res['name'] = "An error occurred, please try again"
 
         return render_template('main.html',response=True,**res)
 
