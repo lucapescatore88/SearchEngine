@@ -1,13 +1,12 @@
-from engineutils import config, resroot, saveDataWithPrediction
-from sklearn.linear_model import LogisticRegression
+from engineutils import config, resroot, saveDataWithPrediction, removeUnicode
 from sklearn.model_selection import train_test_split
-#from scipy.spatial.distance import cosine
+from sklearn.linear_model import LogisticRegression
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from sklearn.decomposition import PCA
 from googleutils import parseGoogle
 from nltk.corpus import stopwords
-import string, math, os, sys
+import string, math, os, sys, re
 import pandas as pd
 import yaml, pickle
 import numpy as np
@@ -28,12 +27,15 @@ trained_model    = pickle.load(open(modelfile))
 trained_word_map = pickle.load(open(mapfile))
 trained_pca      = pickle.load(open(pcamodelfile))
 
-def keepword(w) :
+
+def keepword(w,stopw,punct) :
     if len(w) < 4 : return False
     if "/" in w or "www" in w or "http" in w: return False
     if "''" in w or "`" in w or '\t' in w or '~' in w : return False
     if not all(ord(char) < 128 for char in w) : return False
     if any(char.isdigit() for char in w) : return False
+    if w in stopw : return False
+    if w in punct : return False
     return True
 
 ### Splits words, simplifies them (lower case, remove stopwords, lemmatize)
@@ -48,9 +50,8 @@ def prepareNLPData(data) :
     for tok in tokens : newtokens.extend(tok.split("-"))
     for tok in newtokens : newtokens2.extend(tok.split("'"))
 
-    filtered_words = [w.lower() for w in newtokens2 if w.lower() not in stopw]
-    filtered_words = [w for w in filtered_words if w not in punct]
-    filtered_words = [w for w in filtered_words if keepword(w)]
+    filtered_words = [w.lower() for w in newtokens2]
+    filtered_words = [w for w in filtered_words if keepword(w,stopw,punct)]
     
     ## Lemmatise words to limit phasespace: e.g dogs --> dog, doing --> do 
     lemmatizer = WordNetLemmatizer()
@@ -76,9 +77,8 @@ def makeDataSetSpark(people,word_map={},fillWM=True) :
         words      = inputs.flatMap(lambda x: word_tokenize(x) )
         nodash     = words.flatMap(lambda x: x.split("-") )
         noapostr   = nodash.flatMap(lambda x: x.split("'") )
-        filtered   = noapostr.filter(lambda w : keepword(w) )
-        lowords    = filtered.map(lambda w: w.lower())
-        nostop     = lowords.filter(lambda w : w not in stopw and w not in punct)
+        lowords    = noapostr.map(lambda w: w.lower())
+        filtered   = lowords.filter(lambda w : keepword(w,stopw,punct) )
         lemmatised = nostop.map(lambda w: lemmatizer.lemmatize(w))
 
         toks.append(lemmatised.collect())
@@ -128,8 +128,8 @@ def makeDataSet(people,word_map={},fillWM=True) :
 
     ## Build map from words to vector index
     toks = []
-    for pol in people :
-        lemms = prepareNLPData(pol)
+    for text in people :
+        lemms = prepareNLPData(text)
         if fillWM : word_map = fillWordMap(lemms,word_map)
         toks.append(lemms)
     
@@ -142,16 +142,16 @@ def getVectorDF(alltoks,word_map,label=None) :
     indices   = word_map.values()
     for toks in alltoks:
         d = { vocaulary[indices.index(i)] : x for i,x in enumerate(tokensToVector(toks, word_map)) }
-        if label is not None : d['Label'] = 1
+        if label is not None : d['Label'] = label
         recs.append(d)
     return pd.DataFrame(recs)
 
 ### Function to train a NLP model for classifying politicians 
-def trainNLPModel(politicians,normals) :
+def trainNLPModel(politicians,normals,vname="googletext") :
 
     ### Tockenise and clean data and fill the word map
-    poltexts = politicians.loc[:,'googletext'].tolist()
-    normtexts = normals.loc[:,'googletext'].tolist()
+    poltexts = politicians.loc[:,vname].tolist()
+    normtexts = normals.loc[:,vname].tolist()
     word_map = None
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
@@ -175,11 +175,11 @@ def trainNLPModel(politicians,normals) :
 
     ### Vectorise data
     dataPol  = getVectorDF(pol_toks,word_map,label=1)
-    dataNorm = getVectorDF(norm_toks,word_map,label=1)
+    dataNorm = getVectorDF(norm_toks,word_map,label=0)
     with open("dataNorm.pkl","w") as of :
         pickle.dump(dataNorm,of)
     with open("dataPol.pkl","w") as of :
-       pickle.dump(dataPol,of)
+        pickle.dump(dataPol,of)
 
     ### Since it's a long computation time save intermediate steps for testing
     #dataNorm = pickle.load(open("dataNorm.pkl"))
@@ -228,19 +228,26 @@ def trainNLPModel(politicians,normals) :
 
     return model
 
-def scorePolitician(person) :
+def scorePolitician(person,method="simple") :
 
     if config['usespark'] :
         word_map, alltoks = makeDataSetSpark([person],trained_word_map,False)
     else :
         word_map, alltoks = makeDataSet([person],trained_word_map,False)
     
-    data     = getVectorDF(alltoks,word_map)
-    features = trained_pca.transform(data)
+    score = None
+    if method=="simple" :
+        vec   = tokensToVector(alltoks[0], word_map_simple)
+        score = cosvec(testvector,vec)
+    else :
 
-    ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
-    classindex = trained_model.classes_.tolist().index(1)
-    score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
+        data     = getVectorDF(alltoks,trained_word_map)
+        features = trained_pca.transform(data)
+
+        ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
+        classindex = trained_model.classes_.tolist().index(1)
+        score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
+
     print "Politician score is", score
     return score
 
@@ -291,22 +298,15 @@ testvector        = tokensToVector(lemms_simple, word_map_simple)
 ### N.B.: Threshold was pretrained and can be changed in cfg.yml
 def isPoliticianSimple(person) :
 
-    if config['usespark'] :
-        word_map, alltoks = makeDataSetSpark([person],word_map_simple,False)
-    else :
-        word_map, alltoks = makeDataSet([person],word_map_simple,False)
-
-    vec        = tokensToVector(alltoks[0], word_map_simple)
-    score      = cosvec(testvector,vec)
-
+    score = scorePolitician(person,method="simple")
     return score > config['simple_nlp_thr']
 
 
 ### Function to train the simplified model
-def trainSimpleNLPModel(politicians,normals) :
+def trainSimpleNLPModel(politicians,normals,vname="googletext") :
 
-    poltexts = politicians.loc[:,'googletext'].tolist()
-    normtexts = normals.loc[:,'googletext'].tolist()
+    poltexts = politicians.loc[:,vname].tolist()
+    normtexts = normals.loc[:,vname].tolist()
     if config['usespark'] :
         word_map, pol_toks = makeDataSetSpark(poltexts)
         word_map, norm_toks = makeDataSetSpark(normtexts)
@@ -329,6 +329,10 @@ def trainSimpleNLPModel(politicians,normals) :
     print "Mean Politics = ", np.mean(pol_scores)
     print "Mean Normal   = ", np.mean(norm_scores)
     print "Threshold     = ", thr
+    
+    corrclass = [1 for x in pol_scores if x > thr]
+    corrclass.extend([1 for x in norm_scores if x < thr])
+    print "Class rate    = ", len(corrclass) / float(len(pol_scores) + len(norm_scores))  
 
     with open(nlpoutfile,"w") as of :
         pickle.dump(politicians.append(normals),of)
@@ -357,6 +361,26 @@ def optimiseThr(data1,data2,var) :
 
     return besteff, bestcut
 
+def makeTrainTextDF(x) :
+
+    cleanbio = removeUnicode(x['bio'])
+    cleanbio = re.sub(r"\(.*?\)","",cleanbio)
+    cleanbio = cleanbio.replace(str(x['name']),"")
+    cleanbio = cleanbio.replace(str(x['surname']),"")
+    #cleanbio = cleanbio.replace(str(x['midname']),"")
+    cleanbio = re.sub(r"\d","",cleanbio)
+    return cleanbio + " " + removeUnicode(x['profession'])
+
+def makeTrainText(bio,name,surname,profession) :
+    
+    cleanbio = removeUnicode(bio)
+    cleanbio = re.sub(r"\(.*?\)","",cleanbio)
+    cleanbio = cleanbio.replace(str(name),"")
+    cleanbio = cleanbio.replace(str(surname),"")
+    #cleanbio = cleanbio.replace(str(x['midname']),"")
+    cleanbio = re.sub(r"\d","",cleanbio)
+    return cleanbio + " " + removeUnicode(profession)
+
 
 if __name__ == "__main__" :
 
@@ -366,14 +390,16 @@ if __name__ == "__main__" :
         print "Please run 'python engine/googleutils.py' to get data for training"
         sys.exit()
 
-    import pickle
-    data = pickle.load(open(resroot+"GoogleDF.pkl"))
-    
+    #data = pickle.load(open(resroot+"GoogleDF.pkl"))
+    data = pickle.load(open(resroot+"WikiDF.pkl"))
+
+    data['bio']        = data['bio'].fillna("")
+    data['traintext']  = data.apply(lambda x : makeTrainTextDF(x), axis=1)
     politicians = data.loc[data['isPol']==1]
     normals     = data.loc[data['isPol']==0]
 
     print "Training Simple model"
-    trainSimpleNLPModel(politicians,normals)
+    trainSimpleNLPModel(politicians,normals,'traintext')
     print "Training Logistic model"
-    trainNLPModel(politicians,normals)
+    trainNLPModel(politicians,normals,'traintext')
 

@@ -28,6 +28,11 @@ RUN pip install nltk
 RUN pip install pyspark
 #RUN python -c 'import nltk; nltk.download("all")'
 
+RUN apt-get install -y curl
+RUN python -c 'import nltk; nltk.download("stopwords")'
+RUN python -c 'import nltk; nltk.download("wordnet")'
+RUN python -c 'import nltk; nltk.download("punkt")'
+
 EXPOSE 5000
 
 COPY engine engine

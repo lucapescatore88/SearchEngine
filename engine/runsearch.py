@@ -4,9 +4,10 @@ from wikiutils import parseWiki
 import pickle 
 
 from checkFamous import isFamous, getFamousFeatures
-from checkPolitician import scorePolitician
+from checkPolitician import scorePolitician, makeTrainText
 
 def printResult(data) :
+    if data['money'] == -1 : data['money'] = "N/A "
     with open(resroot+"print_template.txt") as tmp :
         print tmp.read().format(**data)
 
@@ -43,11 +44,11 @@ def runSearch(name,surname,midname="",country="") :
 
     ## Getting google page to see if he it a polititian
     print "Now doing some serious NLP on Google to see if a politician"
-    googleout = parseGoogle(name,surname,midname,country_name)
-    #scorePol = scorePolitician(googleout)
-    #out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
-    out["isPolitician"] = 1
-
+    #googleout = parseGoogle(name,surname,midname,country_name)
+    text = makeTrainText(out['bio'],out['name'],out['surname'],out['profession'])
+    scorePol  = scorePolitician(text)
+    out["isPolitician"] = (scorePol > config['isPolitician_prob_threshold'])
+    
     print "Now doing some ML to understand if famous"
     features = getFamousFeatures(name,surname,
                                 isPolitician = scorePol,

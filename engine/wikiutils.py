@@ -2,7 +2,6 @@ from engineutils import country_df, resroot, NAval, convertToUSD
 from engineutils import loadCurrencies, cleanData
 from networthutils import parseNetWorth
 from HTMLParser import HTMLParser
-from unidecode import unidecode
 from bs4 import BeautifulSoup
 from datetime import datetime
 import wikipedia, requests
@@ -14,6 +13,14 @@ import re, os
 wikipedia.set_lang("en")
 hparse = HTMLParser()
 
+## Output template
+
+outtmp = {'name' : NAval,'surname': NAval,'midname': "",
+          'bio'  : NAval, 'profession' : NAval,'bday': NAval,
+          'money': -1,'country': NAval, "hasSites" : False,
+          'hasSites' : False }
+
+
 ### Find the Profession
 
 def findWikiProfession(soup) :
@@ -24,9 +31,11 @@ def findWikiProfession(soup) :
         
         found = False
         for th in tr.findChildren("th") :
-            if th.string in tags : 
-                found = True 
-                break
+            for tag in tags :
+                if th.string is not None and tag in th.string : 
+                    found = True 
+                    break
+            if found : break
 
         if not found : continue
 
@@ -124,16 +133,15 @@ def findWikiBirthDay(soup,bio=None) :
     ## Find in biography
     if bio is not None :
 
-        ## Month DD, YYYY verison
+        ## DD Month YYYY verison
         months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
-        patts = [ r'%s.*?\d{4}' % mon for mon in months ]
+        patts = [ r'\d+ %s.*?\d{4}' % mon for mon in months ]
         patt = r'(?i).*?\(.*?born.*?('+'|'.join(patts)+r').*?\).*?'
         match = re.match(patt,bio)
         if match is not None : return match.groups()[0] 
 
-        ## DD Month YYYY verison
-        months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dic']
-        patts = [ r'\d+ %s.*?\d{4}' % mon for mon in months ]
+        ## Month DD, YYYY verison
+        patts = [ r'%s.*?\d{4}' % mon for mon in months ]
         patt = r'(?i).*?\(.*?born.*?('+'|'.join(patts)+r').*?\).*?'
         match = re.match(patt,bio)
         if match is not None : return match.groups()[0] 
@@ -244,9 +252,9 @@ def parseWiki(name,surname,midname="",country="") :
         page = wikipedia.page(mainpage)
     else :
         print "Something is wrong... no Wiki page found"
-        return {'name' : name,'surname': surname,'midname': "",
-                'bio'  : NAval, 'profession' : NAval,'bday': NAval,
-                'money': -1,'country': NAval, "hasSites" : False}
+        outtmp['name'] = name
+        outtmp['surname'] = surname
+        return outtmp
 
     req = requests.get(page.url)
     mytext = ''.join([i if ord(i) < 128 else ' ' for i in req.text])
@@ -278,10 +286,11 @@ def parseWiki(name,surname,midname="",country="") :
 
     ### If not famous people websites are found set hasSites flag
     out["hasSites"] = True
-    if networth == -1  and nation == NAval and profs == NAval and bio == NAval :
+    if networth == -1 and all( [ x==NAval for x in [nation, profs, bio]] ) :
         out["hasSites"] = False
 
-    return out
+    outtmp.update(out)
+    return outtmp
 
 
 

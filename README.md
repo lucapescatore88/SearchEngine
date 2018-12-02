@@ -44,7 +44,7 @@ If you don't want to bother with all that you can build a Docker environment typ
 
 ```
 docker build -t {some name} .
-docker run -p 5000:5000 -i -t {some name}
+docker run -p 80:5000 -i -t {some name}
 [DockerConsole]>>> python engine/runsearch.py Donald Trump
 ```
 

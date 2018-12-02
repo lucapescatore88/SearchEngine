@@ -1,4 +1,5 @@
 from forex_python.converter import CurrencyRates
+from unidecode import unidecode
 import re, os, sys, yaml
 import pandas as pd
 import urllib2
@@ -103,6 +104,17 @@ def cleanData(data) :
     data = re.sub(r'--br--',"\n",data)                         # Change <br> to \n
 
     return data
+
+
+def removeUnicode(text) :
+    if text is None : return text
+    try:
+        text = unidecode(unicode(text, 'utf-8'))
+    except TypeError:
+        pass
+    if not isinstance(text,str) and not isinstance(text,unicode) :
+        return ""
+    return str(text)
 
 
 ### This function detects if the input is a A2, A3 or code country number
