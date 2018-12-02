@@ -45,13 +45,13 @@ If you don't want to bother with all that you can build a Docker environment typ
 ```
 docker build -t {some name} .
 ```
-or
+Or you can directly pull it from my DockerHub!
 ```
  docker pull lucapescatore88/search-engine
 ```
 And then run
 ```
-docker run -p 80:80 -i -t {'some name' or lucapescatore88/search-engine}
+docker run -p 80:80 -i -t {'some name' or 'lucapescatore88/search-engine'}
 ```
 
 On linux you can then go to a brower and use the app. 
