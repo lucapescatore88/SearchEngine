@@ -2,14 +2,21 @@ from engineutils import res
 import matplotlib.pyplot as plt
 import seaborn as sb
 import numpy as np
+import argparse
 import pickle
 import sys
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--simple",action="store_true")
+args = parser.parse_args()
 
-file = res.RESOURCES+"NLP_simple_out.pkl"
+simple = ""
 file = res.RESOURCES+"NLP_out.pkl"
-var = 'scorePolSimple'
 var = 'scorePol'
+if args.simple :
+    simple = "simple"
+    file = res.RESOURCES+"NLP_simple_out.pkl"
+    var = 'scorePolSimple'
 
 data = pickle.load(open(file))
 #print data.head()
@@ -24,12 +31,12 @@ data = data.fillna(0)
 dataPol   = data.loc[data['isPol']==1,var]
 dataNoPol = data.loc[data['isPol']==0,var]
 
-sb.distplot(dataPol,kde=False,bins=30)
 sb.distplot(dataNoPol,kde=False,bins=30)
+sb.distplot(dataPol,kde=False,bins=30)
 plt.legend(['Normals (mean = %.2f)' % dataNoPol.mean(),
-    'Politicians (mean = %.2f)' % dataPol.mean()], ncol=2, loc='best');
+    'Politicians (mean = %.2f)' % dataPol.mean()], loc='best');
 plt.yscale('log')
-plt.savefig(res.PLOTS+"NLPout_seaborn.pdf")
+plt.savefig(res.PLOTS+"NLPout"+simple+".pdf")
 plt.clf()
 
 eff, rej = [], []
@@ -51,7 +58,7 @@ print "The best cut is:", bestcut, "with efficiency", besteff
 plt.plot(eff,rej)
 plt.xlabel('Efficiency')
 plt.ylabel('Rejection')
-plt.savefig(res.PLOTS+"NLP_ROC.pdf")
+plt.savefig(res.PLOTS+"NLP_ROC"+simple+".pdf")
 plt.clf()
 
 

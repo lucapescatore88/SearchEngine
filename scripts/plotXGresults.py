@@ -3,8 +3,13 @@ import matplotlib.pyplot as plt
 import seaborn as sb
 import pandas as pd
 import numpy as np
+import argparse
 import pickle
 import sys
+
+#parser = argparse.ArgumentParser()
+#parser.add_argument("--simple",action="store_true")
+#args = parser.parse_args()
 
 data = pickle.load(open(res.RESOURCES+"XGScored.pkl"))
 corr = data[['TweetCounts','TweetFollows','money','isFamous']].corr()
@@ -32,8 +37,8 @@ plt.clf()
 
 
 for var in ['isFamous','TweetFollows','TweetCounts'] :
-    sb.distplot(dataNoFam[var],kde=False)
     sb.distplot(dataFam[var],kde=False)
+    sb.distplot(dataNoFam[var],kde=False)
     plt.legend(['Famous (mean = %.2f)' % dataFam[var].mean(),
         'Normals (mean = %.2f)' % dataNoFam[var].mean()], loc='best')
     plt.yscale('log')

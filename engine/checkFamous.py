@@ -154,11 +154,11 @@ class FamousChecker :
     def getFamousFeatures(self,name,surname,isPolitician=None,country=None,money=None,job=None) :
     
         fdict = {
-            'scorePolSimple': isPolitician,
-            'TweetCounts'   : getTwitterCounts(name,surname),
-            'TweetFollows'  : getTwitterFollowers(name,surname),
-            'country'       : country,
-            'money'         : money
+            'scorePol'     : isPolitician,
+            'TweetCounts'  : getTwitterCounts(name,surname),
+            'TweetFollows' : getTwitterFollowers(name,surname),
+            'country'      : country,
+            'money'        : money
         }
     
         ### Take care of doing necessary conversions
@@ -166,10 +166,10 @@ class FamousChecker :
             fdict['country'] = countryCode(country)
     
         ### Recalculate quantities if they are missing
-        if fdict['scorePolSimple'] is None :
-            #googleout = parseGoogle(name,surname)
+        if fdict['scorePol'] is None :
+            wiki = WikiParser(self.name,self.surname,self.midname,self.country,self.config)
             polCheck = PoliticianChecker(self.config)
-            fdict['scorePolSimple'] = polCheck.scorePolitician(out) ### This is a bug, fix!
+            fdict['scorePol'] = polCheck.scorePolitician(wiki.parse()) 
         
         if fdict['country'] is None or fdict['money'] is None :
     
@@ -206,21 +206,21 @@ if __name__ == "__main__" :
 
     config = loadConfig()
 
-    wikidata  = pickle.load(open(resroot+"WikiDF.pkl"))
-    poldata   = pickle.load(open(resroot+"NLP_simple_out.pkl"))
+    #wikidata  = pickle.load(open(resroot+"WikiDF.pkl"))
+    poldata   = pickle.load(open(resroot+"NLP_out.pkl"))
     tweetdata = pickle.load(open(resroot+"TwitterDF.pkl"))
 
     common = ['name','surname','isPol','isFam']
-    mydata = pd.merge(wikidata, tweetdata, left_on=common, right_on=common, how='inner')
-    mydata = pd.merge(mydata, poldata, left_on=common, right_on=common, how='inner')
+    #mydata = pd.merge(wikidata, tweetdata, left_on=common, right_on=common, how='inner')
+    mydata = pd.merge(tweetdata, poldata, left_on=common, right_on=common, how='inner')
     mydata['country'] = mydata['country'].apply(lambda x : countryCode(x))
     mydata['money'] = mydata['money'].apply( lambda x : -1 if isinstance(x,str) else x )
-    mydata['scorePolSimple'] = mydata['scorePolSimple'].fillna(0).replace(np.inf, 0)
+    #mydata['scorePolSimple'] = mydata['scorePolSimple'].fillna(0).replace(np.inf, 0)
     pickle.dump(mydata,open(fulldffile,"w"))
     
-    features = mydata[['scorePolSimple','TweetCounts','TweetFollows','country','money']]
+    features   = mydata[['scorePol','TweetCounts','TweetFollows','country','money']]
     oh_encoded = country_ohe.encodeOneHot(features,'country')
-    features = pd.concat([features, oh_encoded], axis=1)
+    features   = pd.concat([features, oh_encoded], axis=1)
     features.drop(columns=['country'])
 
     labels   = mydata['isFam']

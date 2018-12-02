@@ -19,7 +19,7 @@ def parseNetWorth(name,surname,data) :
         except :
             continue
 
-    if resp is None : return {}
+    if resp is None : return data
     res = resp.read().decode('utf-8')
     soup = BeautifulSoup(res)
 

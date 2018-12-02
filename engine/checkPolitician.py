@@ -156,7 +156,7 @@ def trainNLPModel(politicians,normals,vname="googletext",config={}) :
 
     #print "I studied, now I know %i words" % len(word_map)
 
-    with open("mywordmap.pkl","w") as of :
+    with open(mapfile,"w") as of :
         pickle.dump(word_map,of)
 
     ### Vectorise data
@@ -168,13 +168,14 @@ def trainNLPModel(politicians,normals,vname="googletext",config={}) :
     feats = dat.drop('Label',axis=1)
     labs  = dat['Label']
 
+    rnd = 10
     feats_train, feats_test, labs_train, labs_test \
-        = train_test_split(feats, labs, test_size=0.2)
+        = train_test_split(feats, labs, test_size=0.2, random_state=rnd)
 
-    pca = PCA(n_components=10)
+    pca = PCA(n_components=10, random_state=rnd)
     pca_train = pca.fit_transform(feats_train)
 
-    model = LogisticRegression()
+    model = LogisticRegression(random_state=rnd)
     model.fit(pca_train,labs_train)
     #model.fit(feats_train,labs_train)
 
@@ -191,8 +192,9 @@ def trainNLPModel(politicians,normals,vname="googletext",config={}) :
     ## Save scored data for plotting
     allpol_pca  = pca.transform(dataPol.drop('Label',axis=1))
     allnpol_pca = pca.transform(dataNorm.drop('Label',axis=1))
-    politicians['scorePol'] = model.predict_proba(allpol_pca)[:,0]
-    normals['scorePol'] = model.predict_proba(allnpol_pca)[:,0]
+    classindex  = model.classes_.tolist().index(1)
+    politicians['scorePol'] = model.predict_proba(allpol_pca)[:,classindex]
+    normals['scorePol']     = model.predict_proba(allnpol_pca)[:,classindex]
 
     #politicians['scorePol'] = model.predict_proba(dataPol.drop('Label',axis=1))[:,1]
     #normals['scorePol'] = model.predict_proba(dataNorm.drop('Label',axis=1))[:,1]
@@ -277,6 +279,7 @@ def trainSimpleNLPModel(politicians,normals,vname="googletext",config={}) :
 
     return thr
 
+
 def optimiseThr(data1,data2,var) :
 
     data = data1.append(data2)
@@ -304,7 +307,8 @@ def makeTrainText(x) :
     cleanbio = re.sub(r"\(.*?\)","",cleanbio)
     cleanbio = cleanbio.replace(str(removeUnicode(x['name'])),"")
     cleanbio = cleanbio.replace(str(removeUnicode(x['surname'])),"")
-    cleanbio = cleanbio.replace(str(removeUnicode(x['midname'])),"")
+    try : cleanbio = cleanbio.replace(str(removeUnicode(x['midname'])),"")
+    except : pass
     cleanbio = re.sub(r"\d","",cleanbio)
     return cleanbio + " " + removeUnicode(x['profession'])
 
@@ -314,7 +318,7 @@ class PoliticianChecker :
     def __init__(self,config) :
         self.config = config
 
-    def scorePolitician(self,data,method="simple") :
+    def scorePolitician(self,data,method="") :
     
         person = makeTrainText(data)
 
@@ -334,7 +338,7 @@ class PoliticianChecker :
     
             ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
             classindex = trained_model.classes_.tolist().index(1)
-            score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
+            score = trained_model.predict_proba(features)[:,classindex][0]
     
         print "Politician score is", score
         return score
@@ -342,7 +346,7 @@ class PoliticianChecker :
     ### Given a text return if it is a politician 
     ### N.B.: Uses a pretrained model
     ### N.B.: Threshold can be changed in cfg.yml
-    def isPolitician(self,person,method="simple") :
+    def isPolitician(self,person,method="") :
     
         score = scorePolitician(person,method)
         print "Politician score is", score

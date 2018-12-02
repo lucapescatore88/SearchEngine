@@ -237,6 +237,8 @@ def findWikiBiography(soup,name,surname) :
 
     return names, bio
 
+
+
 class WikiParser :
 
     def __init__(self,name,surname,midname="",country="",config=None) :
@@ -292,7 +294,7 @@ class WikiParser :
         ## Try NetWorth website which have some more money info for rich people
         if networth == -1  or nation == NAval or profs == NAval : 
             dout = parseNetWorth(self.name,self.surname,dout)
-    
+        
         ### If not famous people websites are found set hasSites flag
         if networth == -1 and all( [ x==NAval for x in [dout['country'], profs, bio]] ) :
             dout["hasSites"] = False
