@@ -1,9 +1,9 @@
-from engineutils import country_df, countryCode, resroot, saveDataWithPrediction, config
+from engineutils import country_df, countryCode, resroot, saveDataWithPrediction, loadConfig
 from sklearn.ensemble import AdaBoostClassifier, VotingClassifier, RandomForestClassifier
 from sklearn.model_selection import cross_val_score, ParameterGrid, GridSearchCV
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
 from twitterutils import getTwitterCounts, getTwitterFollowers
-from checkPolitician import scorePolitician
+from checkPolitician import PoliticianChecker
 from xgboost import XGBClassifier
 import matplotlib.pyplot as plt
 import os, re, pickle
@@ -20,7 +20,7 @@ trained_Votingmodel = pickle.load(open(modelVotingfile))
 
 
 ### Trains a XGboost model to classify famous
-def trainFamousModel(features,labels) :
+def trainFamousModel(features,labels,config={}) :
 
     ### Do some hyper-parameter scanning to oprimise the performance
     param_cands_XG = [
@@ -46,7 +46,7 @@ def trainFamousModel(features,labels) :
 
 
 ### Trains a voting model with 4 models inside to classify famous
-def trainFamousVotingModel(features,labels) :
+def trainFamousVotingModel(features,labels,config={}) :
 
     ### Train 3 models. N.B.: To do it properly should do a GridScan for each one but no time
 
@@ -97,28 +97,6 @@ def getClfsCorr(clfs,test) :
     plt.savefig(engineutils.res.PLOTS+"CLFsCorr.pdf")
     plt.cla()
 
-
-def scoreFamous(features) :
-
-    classindex = trained_XGmodel.classes_.tolist().index(1)
-    return trained_XGmodel.predict_proba(features)[:,classindex][0]
-
-def scoreFamousVoting(features) :
-
-    return trained_Votingmodel.predict_proba(features)[:,classindex][0]
-
-def isFamous(features, t="XG") :
-
-    print "Famous score is", scoreFamous(features)
-    if t=="XG" :
-        return scoreFamous(features) > config["isFamous_prob_threshold"]
-    return scoreFamousVoting(features) > config["isFamous_prob_threshold"]
-
-def isFamousVoting(features) :
-
-    pred = trained_Votingmodel.predict(features)[:,0]
-    return pred.values[0] > 0.5
-
 ## Define One Hot Encoder for countries
 ## Hadles both int and string labelled categories 
 class CountryOneHotEncoder :
@@ -145,48 +123,75 @@ class CountryOneHotEncoder :
 country_ohe = CountryOneHotEncoder(country_df,'Code')
 
 
-### Parameters are already available quantities, so they won't be recalculated
 
-def getFamousFeatures(name,surname,isPolitician=None,country=None,money=None,job=None) :
+class FamousChecker :
 
-    fdict = {
-        'scorePolSimple': isPolitician,
-        'TweetCounts'   : getTwitterCounts(name,surname),
-        'TweetFollows'  : getTwitterFollowers(name,surname),
-        'country'       : country,
-        'money'         : money
-    }
+    def __init__(self,config) :
+        self.config = config
 
-    ### Take care of doing necessary conversions
-    if country is not None :
-        fdict['country'] = countryCode(country)
-
-    ### Recalculate quantities if they are missing
-    if fdict['scorePolSimple'] is None :
-        googleout = parseGoogle(name,surname)
-        fdict['scorePolSimple'] = scorePolitician(googleout)
+    def scoreFamous(self) :
     
-    if fdict['country'] is None or fdict['money'] is None :
+        classindex = trained_XGmodel.classes_.tolist().index(1)
+        return trained_XGmodel.predict_proba(self.features)[:,classindex][0]
+    
+    def scoreFamousVoting(self) :
+    
+        return trained_Votingmodel.predict_proba(self.features)[:,classindex][0]
+    
+    def isFamous(self, t="XG") :
+    
+        print "Famous score is", self.scoreFamous()
+        if t=="XG" :
+            return self.scoreFamous() > self.config["isFamous_prob_threshold"]
+        return self.scoreFamousVoting() > self.config["isFamous_prob_threshold"]
+    
+    def isFamousVoting(self) :
+    
+        pred = trained_Votingmodel.predict(self.features)[:,0]
+        return pred.values[0] > 0.5
 
-        info, fulltext = parseWiki(name,surname)
-        if country is None :
-            fdict['country'] = countryCode(info['country'])
-        if money is None :
-            fdict['money'] = info["money"]
-
-    print fdict
-    ### Process data so that the model can read it
-    df = pd.DataFrame(fdict,index=[0])
-
-    ## Convert country into One Hot Encoding
-    oh_encoded = country_ohe.encodeOneHot(df,'country')
-    df = pd.concat([df, oh_encoded], axis=1)
-    df.drop(columns=['country'])
-
-    with open(resroot+"NameFeatures.pkl") as of:
-        df = df[pickle.load(of)]
-
-    return df
+    ### Parameters are already available quantities, so they won't be recalculated
+    def getFamousFeatures(self,name,surname,isPolitician=None,country=None,money=None,job=None) :
+    
+        fdict = {
+            'scorePolSimple': isPolitician,
+            'TweetCounts'   : getTwitterCounts(name,surname),
+            'TweetFollows'  : getTwitterFollowers(name,surname),
+            'country'       : country,
+            'money'         : money
+        }
+    
+        ### Take care of doing necessary conversions
+        if country is not None :
+            fdict['country'] = countryCode(country)
+    
+        ### Recalculate quantities if they are missing
+        if fdict['scorePolSimple'] is None :
+            #googleout = parseGoogle(name,surname)
+            polCheck = PoliticianChecker(self.config)
+            fdict['scorePolSimple'] = polCheck.scorePolitician(out) ### This is a bug, fix!
+        
+        if fdict['country'] is None or fdict['money'] is None :
+    
+            info, fulltext = parseWiki(name,surname)
+            if country is None :
+                fdict['country'] = countryCode(info['country'])
+            if money is None :
+                fdict['money'] = info["money"]
+        
+        ### Process data so that the model can read it
+        df = pd.DataFrame(fdict,index=[0])
+    
+        ## Convert country into One Hot Encoding
+        oh_encoded = country_ohe.encodeOneHot(df,'country')
+        df = pd.concat([df, oh_encoded], axis=1)
+        df.drop(columns=['country'])
+    
+        with open(resroot+"NameFeatures.pkl") as of:
+            df = df[pickle.load(of)]
+    
+        self.features = df
+        return df
 
 
 if __name__ == "__main__" :
@@ -198,6 +203,8 @@ if __name__ == "__main__" :
     if not os.path.exists(resroot+"TwitterDF.pkl") :
         print "Please run 'python engine/wikiutils.py' to get data for training"
         sys.exit()
+
+    config = loadConfig()
 
     wikidata  = pickle.load(open(resroot+"WikiDF.pkl"))
     poldata   = pickle.load(open(resroot+"NLP_simple_out.pkl"))
@@ -220,8 +227,8 @@ if __name__ == "__main__" :
 
     with open(resroot+"NameFeatures.pkl","w") as of:
         pickle.dump(features.columns,of)
-    trainFamousModel(features,labels)
-    trainFamousVotingModel(features,labels)
+    trainFamousModel(features,labels,config)
+    trainFamousVotingModel(features,labels,config)
 
 
 

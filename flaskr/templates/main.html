@@ -16,6 +16,7 @@
         #loadinginner {
             background: url(/static/images/LoadingImage.gif) no-repeat 5px 3px;
             padding-left: 20px;
+            background-size: contain;
         }
         </style>
     </head>
@@ -63,15 +64,18 @@
                     </div>
                 </div>
             </form>
-            <br><br>
-    
-    <!--      Response section appears when button is clicked   -->
-    <div id="loading" style="display:block;width:100%;text-align:center;">
-        <br><br>
-        <div id="loadinginner" style="display:none;"></div>
     </div>
+    <br><br>
+
+    <!--      Loading box     -->
+        <div id="loading" style="display:none;width:75%;">
+            <div id="loadinginner" style="width:20%;margin: 0 auto;height:200px">Loading...</div>
+        </div>
+
+
+    <!--      Response section appears when button is clicked   -->
     {% if response %}
-        <br><br>
+        <br>
             <div style="margin-top: 100px">
             Ok, I did my best: here is what I found!
         
@@ -98,12 +102,10 @@
         </div>
     {% endif %}
         
-        </div>
-        
 
     <!--      Some info on myself :-)   -->
 
-        <br><br><br>
+        <br><br>
         <div>
             Assessment material :
             <ul>
@@ -165,7 +167,7 @@
             }
 
             function loading() {
-                $("#loadinginner").show();
+                $("#loading").show();
             }
         </script>
 

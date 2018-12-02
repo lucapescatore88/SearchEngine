@@ -1,12 +1,14 @@
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler, Stream
-from engineutils import config, resroot
+from engineutils import loadConfig, resroot
 from multiprocessing import Process
 from datetime import datetime
 import time, json, os, yaml
 import subprocess as sb
 import pandas as pd
 import tweepy
+
+config = loadConfig()
 
 consumer_key    = "uZEo4lMBcPClUMdPxMFynEAVT"
 consumer_secret = "fW4l7eVPEl9mkPQPRNURJru7nYqduIQNTTMHzr3jMDxdT9tsi1"

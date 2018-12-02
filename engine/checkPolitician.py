@@ -1,21 +1,15 @@
-from engineutils import config, resroot, saveDataWithPrediction, removeUnicode
+from engineutils import resroot, saveDataWithPrediction, removeUnicode, loadConfig
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from sklearn.decomposition import PCA
-from googleutils import parseGoogle
+from pyspark.sql import SparkSession
 from nltk.corpus import stopwords
 import string, math, os, sys, re
 import pandas as pd
 import yaml, pickle
 import numpy as np
-
-spark = None
-if config['usespark'] :
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
-    spark.sparkContext.setLogLevel('ERROR')
 
 pcamodelfile   = resroot+"PCA_politician_model.pkl"
 modelfile      = resroot+"NLP_politician_model.pkl"
@@ -146,12 +140,14 @@ def getVectorDF(alltoks,word_map,label=None) :
 
 
 ### Function to train a NLP model for classifying politicians 
-def trainNLPModel(politicians,normals,vname="googletext") :
+def trainNLPModel(politicians,normals,vname="googletext",config={}) :
 
     poltexts = politicians.loc[:,vname].tolist()
     normtexts = normals.loc[:,vname].tolist()
     word_map = None
     if config['usespark'] :
+        spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
+        spark.sparkContext.setLogLevel('ERROR')
         word_map, pol_toks = makeDataSetSpark(poltexts,word_map_simple)
         word_map, norm_toks = makeDataSetSpark(normtexts,word_map)
     else :    
@@ -209,41 +205,6 @@ def trainNLPModel(politicians,normals,vname="googletext") :
     return model
 
 
-def scorePolitician(person,method="simple") :
-
-    if config['usespark'] :
-        word_map, alltoks = makeDataSetSpark([person],trained_word_map,False)
-    else :
-        word_map, alltoks = makeDataSet([person],trained_word_map,False)
-    
-    score = None
-    if method=="simple" :
-        vec   = tokensToVector(alltoks[0], word_map_simple)
-        score = cosvec(testvector,vec)
-    else :
-
-        data     = getVectorDF(alltoks,trained_word_map)
-        features = trained_pca.transform(data)
-
-        ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
-        classindex = trained_model.classes_.tolist().index(1)
-        score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
-
-    print "Politician score is", score
-    return score
-
-### Given a text return if it is a politician 
-### N.B.: Uses a pretrained model
-### N.B.: Threshold can be changed in cfg.yml
-def isPolitician(person,method="simple") :
-
-    score = scorePolitician(person,method)
-    print "Politician score is", score
-    if method=="simple" :
-        return score > config['isPoliticianSimple_prob_threshold']
-    return score > config['isPolitician_prob_threshold']
-
-
 
 ### Calculates cosigne between to vectors as a similarity measure (could use np.dot)
 def cosvec(v1,v2) :
@@ -278,11 +239,13 @@ word_map_simple   = fillWordMap(lemms_simple)
 testvector        = tokensToVector(lemms_simple, word_map_simple)
 
 ### Function to train the simplified model
-def trainSimpleNLPModel(politicians,normals,vname="googletext") :
+def trainSimpleNLPModel(politicians,normals,vname="googletext",config={}) :
 
     poltexts = politicians.loc[:,vname].tolist()
     normtexts = normals.loc[:,vname].tolist()
     if config['usespark'] :
+        spark = SparkSession.builder.appName("NLPVectorisation").getOrCreate()
+        spark.sparkContext.setLogLevel('ERROR')
         word_map, pol_toks = makeDataSetSpark(poltexts)
         word_map, norm_toks = makeDataSetSpark(normtexts)
     else :
@@ -313,7 +276,6 @@ def trainSimpleNLPModel(politicians,normals,vname="googletext") :
         pickle.dump(politicians.append(normals),of)
 
     return thr
-
 
 def optimiseThr(data1,data2,var) :
 
@@ -347,6 +309,49 @@ def makeTrainText(x) :
     return cleanbio + " " + removeUnicode(x['profession'])
 
 
+class PoliticianChecker :
+
+    def __init__(self,config) :
+        self.config = config
+
+    def scorePolitician(self,data,method="simple") :
+    
+        person = makeTrainText(data)
+
+        if self.config['usespark'] :
+            word_map, alltoks = makeDataSetSpark([person],trained_word_map,False)
+        else :
+            word_map, alltoks = makeDataSet([person],trained_word_map,False)
+        
+        score = None
+        if method=="simple" :
+            vec   = tokensToVector(alltoks[0], word_map_simple)
+            score = cosvec(testvector,vec)
+        else :
+    
+            data     = getVectorDF(alltoks,trained_word_map)
+            features = trained_pca.transform(data)
+    
+            ### N.B.: Value is rescaled to be between 0 and 1 (obtained in plotNLPout.py)
+            classindex = trained_model.classes_.tolist().index(1)
+            score = (trained_model.predict_proba(features)[:,classindex][0]-0.40300)/0.047346
+    
+        print "Politician score is", score
+        return score
+    
+    ### Given a text return if it is a politician 
+    ### N.B.: Uses a pretrained model
+    ### N.B.: Threshold can be changed in cfg.yml
+    def isPolitician(self,person,method="simple") :
+    
+        score = scorePolitician(person,method)
+        print "Politician score is", score
+        if method=="simple" :
+            return score > self.config['isPolitician_prob_threshold']
+        return score > self.config['isPoliticianSimple_prob_threshold']
+
+
+
 if __name__ == "__main__" :
 
     print "This scripts assumes you ran python engine/googleutils.py before"
@@ -354,6 +359,8 @@ if __name__ == "__main__" :
     if not os.path.exists(resroot+"GoogleDF.pkl") :
         print "Please run 'python engine/googleutils.py' to get data for training"
         sys.exit()
+
+    config = loadConfig()
 
     #data = pickle.load(open(resroot+"GoogleDF.pkl"))
     data = pickle.load(open(resroot+"WikiDF.pkl"))
@@ -364,7 +371,7 @@ if __name__ == "__main__" :
     normals     = data.loc[data['isPol']==0]
 
     print "Training Simple model"
-    trainSimpleNLPModel(politicians,normals,'traintext')
+    trainSimpleNLPModel(politicians,normals,'traintext',config)
     print "Training Logistic model"
-    trainNLPModel(politicians,normals,'traintext')
+    trainNLPModel(politicians,normals,'traintext',config)
 

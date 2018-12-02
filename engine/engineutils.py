@@ -5,6 +5,9 @@ import pandas as pd
 import urllib2
 import pickle
 
+import warnings
+warnings.filterwarnings("ignore")
+
 ### Generic paths
 
 root    = os.getenv("PICTETROOT")
@@ -21,19 +24,22 @@ resroot = res.RESOURCES
 
 NAval = "N/A"
 
-### Open config file and make it available via imports
-config = {}
-try :
-    f = open(root+"/cfg.yml")
-    config = yaml.load(f)
-    #print "Configuration:",config
-except Exception as e: 
-    print "Config file is not good"
-    print(e)
-    sys.exit()
+## Config file loader
 
-import warnings
-warnings.filterwarnings("ignore")
+def loadConfig() :
+
+    config = {}
+    try :
+        f = open(root+"/cfg.yml")
+        config = yaml.load(f)
+        #print "Configuration:",config
+    except Exception as e: 
+        print "Config file is not good"
+        print(e)
+        sys.exit()
+    return config
+
+## Other utilities
 
 def internet_off():
     try:

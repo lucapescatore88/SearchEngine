@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import wikipedia, requests
 import pandas as pd
-import re, os
+import re, os, copy
 
 ## Initial lodings
 
@@ -18,7 +18,7 @@ hparse = HTMLParser()
 outtmp = {'name' : NAval,'surname': NAval,'midname': "",
           'bio'  : NAval, 'profession' : NAval,'bday': NAval,
           'money': -1,'country': NAval, "hasSites" : False,
-          'hasSites' : False }
+          'hasSites' : True }
 
 
 ### Find the Profession
@@ -237,60 +237,67 @@ def findWikiBiography(soup,name,surname) :
 
     return names, bio
 
-def parseWiki(name,surname,midname="",country="") :
+class WikiParser :
+
+    def __init__(self,name,surname,midname="",country="",config=None) :
+        self.config  = config
+        self.name    = name
+        self.surname = surname
+        self.midname = midname
+        self.country = country
+
+    def parse(self) :
+        
+        dout = copy.deepcopy(outtmp)
+        dout['name']    = self.name
+        dout['surname'] = self.surname
+
+        query = '{name} {midname} {surname} {country}'.format(
+                    name    = self.name, 
+                    midname = self.midname,
+                    surname = self.surname,
+                    country = self.country ).replace("\\s+"," ")
+        
+        pages = wikipedia.search(query)
     
-    query = '{name} {midname} {surname} {country}'.format(
-                name    = name, 
-                midname = midname,
-                surname = surname,
-                country = country ).replace("\\s+"," ")
-
-    pages = wikipedia.search(query)
-
-    mainpage = pages[0] 
-    if(name in mainpage and surname in mainpage) :
-        page = wikipedia.page(mainpage)
-    else :
-        print "Something is wrong... no Wiki page found"
-        outtmp['name'] = name
-        outtmp['surname'] = surname
-        return outtmp
-
-    req = requests.get(page.url)
-    mytext = ''.join([i if ord(i) < 128 else ' ' for i in req.text])
-    soup = BeautifulSoup(mytext)
-
-    ### Do some extra processing
-    midname, bio = findWikiBiography(soup,name,surname)
-    if bio is None : bio = NAval
-    profs = findWikiProfession(soup)
-    if profs is not None : profs = ', '.join(profs)
-    else : profs = NAval
+        mainpage = pages[0] 
+        if(self.name in mainpage and self.surname in mainpage) :
+            page = wikipedia.page(mainpage)
+        else :
+            print "Something is wrong... no Wiki page found"
+            return dout
     
-    bday = findWikiBirthDay(soup,bio)
-    day, month, year = parseBirthday(bday)
-    networth = findWikiNetWorth(soup)
-    nation   = findWikiNationality(soup,bio,mytext)
+        req = requests.get(page.url)
+        mytext = ''.join([i if ord(i) < 128 else ' ' for i in req.text])
+        soup = BeautifulSoup(mytext)
     
-    ## Prepare output
-    out = {
-        'name'       : name, 'surname' : surname, 'midname' : midname,
-        'bio'        : bio, 'profession' : profs,
-        'bday'       : bday, 'day' : day, 'month' : month, 'year' : year,
-        'money'      : int(networth), 'country'    : nation
-    }
+        ### Do some extra processing
+        dout['midname'], bio = findWikiBiography(soup,self.name,self.surname)
+        if bio is None : bio = NAval
+        profs = findWikiProfession(soup)
+        if profs is not None : profs = ', '.join(profs)
+        else : profs = NAval
+        
+        dout['bday'] = findWikiBirthDay(soup,bio)
+        dout['day'], dout['month'], dout['year'] = parseBirthday(dout['bday'])
+        networth = findWikiNetWorth(soup)
 
-    ## Try NetWorth website which have some more money info for rich people
-    if networth == -1  or nation == NAval or profs == NAval : 
-        out = parseNetWorth(name,surname,out)
+        dout['money']      = int(networth)
+        dout['bio']        = bio
+        dout['profession'] = profs
 
-    ### If not famous people websites are found set hasSites flag
-    out["hasSites"] = True
-    if networth == -1 and all( [ x==NAval for x in [nation, profs, bio]] ) :
-        out["hasSites"] = False
-
-    outtmp.update(out)
-    return outtmp
+        if self.country == "" : 
+            dout['country'] = findWikiNationality(soup,bio,mytext)
+    
+        ## Try NetWorth website which have some more money info for rich people
+        if networth == -1  or nation == NAval or profs == NAval : 
+            dout = parseNetWorth(self.name,self.surname,dout)
+    
+        ### If not famous people websites are found set hasSites flag
+        if networth == -1 and all( [ x==NAval for x in [dout['country'], profs, bio]] ) :
+            dout["hasSites"] = False
+    
+        return dout
 
 
 
