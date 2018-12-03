@@ -43,7 +43,9 @@ def findWikiProfession(soup) :
             links =  li.findChildren("a")
             prof = li.string
             if len(links)>0 : prof = links[0].string
-            professions.append(hparse.unescape(prof))
+            if prof is not None :
+                professions.append(hparse.unescape(prof))
+            if len(professions) > 5 : break
         
         if len(professions)==0 : 
             data = tr.findChildren("td")[0].__str__()
@@ -285,14 +287,14 @@ class WikiParser :
         networth = findWikiNetWorth(soup)
 
         dout['money']      = int(networth)
-        dout['bio']        = bio
+        dout['bio']        = str(re.sub(r"<span.*?/span>"," ",bio).decode())
         dout['profession'] = profs
 
         if self.country == "" : 
             dout['country'] = findWikiNationality(soup,bio,mytext)
     
         ## Try NetWorth website which have some more money info for rich people
-        if networth == -1  or nation == NAval or profs == NAval : 
+        if networth == -1  or dout['country'] == NAval or profs == NAval : 
             dout = parseNetWorth(self.name,self.surname,dout)
         
         ### If not famous people websites are found set hasSites flag

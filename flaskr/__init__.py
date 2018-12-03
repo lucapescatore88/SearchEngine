@@ -48,12 +48,11 @@ def create_app(test_config=None):
         try :
             print "Running search for ", first, last
             search = engine.runsearch.Search(first,last,mid,country)
-            import time
-            time.sleep(10)
+            res['error'] = False
             res = search.run()
         except Exception as e :
             print e
-            res['name'] = "An error occurred, please try again"
+            res['error'] = True
 
         return render_template('main.html',response=True,**res)
 

@@ -44,5 +44,3 @@ COPY cfg.yml cfg.yml
 RUN chmod +x /startup.sh
 ENTRYPOINT ["/startup.sh","web"]
 #CMD bash -C '/startup.sh test';'bash'
-#CMD ["python","engine/runsearch.py","test"]
-

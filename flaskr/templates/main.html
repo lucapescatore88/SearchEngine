@@ -69,14 +69,18 @@
 
     <!--      Loading box     -->
         <div id="loading" style="display:none;width:75%;">
-            <div id="loadinginner" style="width:20%;margin: 0 auto;height:200px">Loading...</div>
+            <div id="loadinginner" style="width:20%;margin: 0 auto;height:200px"></div><br>
+            <div style="width:40%;text-align: center;margin: 0 auto;"><h4>Loading... it should take at most 1 min.</h4></div>
         </div>
 
 
     <!--      Response section appears when button is clicked   -->
     {% if response %}
-            <div style="margin-top: 100px">
-            Ok, I did my best: here is what I found!
+        {% if error %}
+            <h2>I'm sorry some error occurred in the underlying engine... please try a different name.</h2>
+        {% else %}
+            <div style="margin-top: 10px">
+            <h4>Ok, I did my best: here is what I found!</h4>
         
             <div style="border-style:solid;border-width:3px;border-color:white;border-radius:10px;">
                 <h2>{{ name }} {{midname}} {{surname}} </h2>
@@ -99,6 +103,7 @@
                 {% endif %}
             </div>
         </div>
+        {% endif %}
     {% endif %}
         
 

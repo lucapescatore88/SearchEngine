@@ -47,7 +47,7 @@ docker build -t {some name} .
 ```
 Or you can directly pull it from my DockerHub!
 ```
- docker pull lucapescatore88/search-engine
+docker pull lucapescatore88/search-engine
 ```
 And then run
 ```
