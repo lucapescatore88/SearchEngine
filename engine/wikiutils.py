@@ -263,12 +263,17 @@ class WikiParser :
                     country = self.country ).replace("\\s+"," ")
         
         pages = wikipedia.search(query)
-    
+        
+        if len(pages) < 1 : 
+            dout['hasSites'] = False
+            return dout
+            
         mainpage = pages[0] 
         if(self.name in mainpage and self.surname in mainpage) :
             page = wikipedia.page(mainpage)
         else :
             print "Something is wrong... no Wiki page found"
+            dout['hasSites'] = False
             return dout
     
         req = requests.get(page.url)

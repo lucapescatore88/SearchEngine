@@ -79,15 +79,20 @@
         {% if error %}
             <h2>I'm sorry some error occurred in the underlying engine... please try a different name.</h2>
         {% else %}
-            <div style="margin-top: 10px">
+            <div style="margin-top: 10px;">
             <h4>Ok, I did my best: here is what I found!</h4>
         
-            <div style="border-style:solid;border-width:3px;border-color:white;border-radius:10px;">
+            <div style="border-style:solid;border-width:3px;border-color:white;border-radius:10px;padding: 15px 15px 15px 15px">
+                {% if not hasSites %}
+                    <h4>I did not find a Wiki page or any improtant people websites... this is not going to be very useful... Facebook support is coming!</h4>
+                    <br>
+                {% endif %}
+
                 <h2>{{ name }} {{midname}} {{surname}} </h2>
-                <p style="size:15px">Date of birth: {{ bday }}</p>
-                <p>Profession: {{ profession }}</p>
-                <p>How rich: {{ money }}M $</p>
-                <p>Nationality: {{ country }} </p>
+                <p><u>Date of birth</u>:  {{ bday }}</p>
+                <p><u>Profession</u>:  {{ profession }}</p>
+                <p><u>How rich</u>:  {{ money }}M $</p>
+                <p><u>Nationality</u>:  {{ country }} </p>
                 <h3>Biography</h3>
                 <p>{{bio}}</p>
                 

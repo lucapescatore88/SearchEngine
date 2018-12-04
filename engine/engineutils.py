@@ -149,7 +149,6 @@ def convertCountry(code) :
 
     ### If it is a 3 char string. Assume it is a A3 code.
     if len(code)==3 :
-        print "It's a A3"
         for ir,row in country_df.iterrows() :
             if row["A3"] == code :
                 return (row["A3"],row["Name"])   

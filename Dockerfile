@@ -36,8 +36,8 @@ RUN python -c 'import nltk; nltk.download("punkt")'
 EXPOSE 5000
 
 COPY engine engine
-COPY flaskr flaskr
 COPY resources resources
+COPY flaskr flaskr
 COPY startup.sh /startup.sh
 COPY cfg.yml cfg.yml
 

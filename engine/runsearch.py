@@ -55,9 +55,12 @@ class Search :
         print "Now doing some serious NLP to see if a politician"
         #googleout = parseGoogle(name,surname,midname,country_name)
 
-        polCheck = PoliticianChecker(self.config)
-        scorePol = polCheck.scorePolitician(out)
-        out["isPolitician"] = (scorePol > self.config['isPolitician_prob_threshold'])
+        scorePol = 0.
+        out["isPolitician"] = False
+        if out['hasSites'] :
+            polCheck = PoliticianChecker(self.config)
+            scorePol = polCheck.scorePolitician(out)
+            out["isPolitician"] = (scorePol > self.config['isPolitician_prob_threshold'])
         
         ## Test if famous
         print "Now doing some ML to understand if famous"
