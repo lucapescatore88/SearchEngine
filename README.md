@@ -1,8 +1,6 @@
 ### Search Engine
 
-Assignment for Data Scientist position. A search engine that will tell you if somebody is rich and famous or poor and miserable.
-
-#A presentation about how all this works is under development [at this link](https://cernbox.cern.ch/index.php/s/1gHOr0MYm3FGNFL) (low resolution).
+A search engine that will tell you if somebody is rich and famous or poor and miserable.
 
 
 ## Installation 
