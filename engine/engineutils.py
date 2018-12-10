@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 ### Generic paths
 
-root    = os.getenv("PICTETROOT")
+root    = os.getenv("ENGINEROOT")
 if root is None :
     print "Please run 'source startup.sh' before doing anything else."
     sys.exit()

@@ -2,7 +2,7 @@
 
 Assignment for Data Scientist position. A search engine that will tell you if somebody is rich and famous or poor and miserable.
 
-A presentation about how all this works is under development [at this link](https://cernbox.cern.ch/index.php/s/1gHOr0MYm3FGNFL) (low resolution).
+#A presentation about how all this works is under development [at this link](https://cernbox.cern.ch/index.php/s/1gHOr0MYm3FGNFL) (low resolution).
 
 
 ## Installation 
@@ -25,7 +25,7 @@ You can run the application from command line as
 
 ```python engine/runsearch.py Donald Trump```
 
-Or you can access it from the browser too by typing `flask run` to start the server 
+Or you can access it from the browser too by typing `flask run --host 0.0.0.0 --port 80` to start the server 
 and then going to `http://0.0.0.0:80/` from any browser on your local machine.
 
 To make it easier you can use directly the startup script:
